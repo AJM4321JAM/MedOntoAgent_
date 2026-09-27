@@ -1,0 +1,34 @@
+# Python virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+
+# IDE / editor files
+.vscode/
+.idea/
+
+# Test/cache files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary processed data
+data/processed/*
+!data/processed/.gitkeep
+
+# Local source documents should not be committed automatically
+data/source_documents/*
+!data/source_documents/.gitkeep
