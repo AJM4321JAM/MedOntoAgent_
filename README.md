@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: PDF, DOCX, and TXT document loading and extraction established.
+Current phase: Document provenance, checksums, approval governance, duplicate detection, and version registry established.
 
 ## Architecture
 
@@ -60,3 +60,24 @@ The initial ingestion layer supports:
 Source documents are converted into a common validated internal representation before cleaning, chunking, metadata generation, embedding, or retrieval.
 
 Image-only PDFs are not silently accepted. OCR is outside the initial extraction path.
+
+## Document Governance
+
+Every source document is assigned validated provenance metadata before it can enter the active knowledge corpus.
+
+The prototype tracks:
+
+- document identity,
+- SHA-256 checksum,
+- publisher,
+- clinical domain,
+- source authority,
+- version,
+- publication/effective dates,
+- approval status,
+- source URL,
+- supersession relationships.
+
+Exact duplicate files are rejected using SHA-256 checksums.
+
+Only documents with `APPROVED` status are eligible for the active corpus. Older approved versions can be marked `SUPERSEDED` while remaining available for audit and historical analysis.
