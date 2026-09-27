@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Environment and repository setup.
+Current phase: Minimal FastAPI backend established with automated health tests.
 
 ## Architecture
 
