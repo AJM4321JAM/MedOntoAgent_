@@ -1,0 +1,172 @@
+@prefix med: <https://medontoagent.example.org/ontology/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+
+#################################################################
+# Ontology metadata
+#################################################################
+
+med:MedicalOntology
+    a owl:Ontology ;
+    rdfs:label "MedOntoAgent Lightweight Medical Ontology" .
+
+
+#################################################################
+# Core classes
+#################################################################
+
+med:ClinicalConcept
+    a owl:Class ;
+    rdfs:label "Clinical Concept" .
+
+
+med:Condition
+    a owl:Class ;
+    rdfs:subClassOf med:ClinicalConcept ;
+    rdfs:label "Condition" .
+
+
+med:Treatment
+    a owl:Class ;
+    rdfs:subClassOf med:ClinicalConcept ;
+    rdfs:label "Treatment" .
+
+
+med:Drug
+    a owl:Class ;
+    rdfs:subClassOf med:Treatment ;
+    rdfs:label "Drug" .
+
+
+med:DrugClass
+    a owl:Class ;
+    rdfs:subClassOf med:Treatment ;
+    rdfs:label "Drug Class" .
+
+
+med:PatientGroup
+    a owl:Class ;
+    rdfs:subClassOf med:ClinicalConcept ;
+    rdfs:label "Patient Group" .
+
+
+med:Investigation
+    a owl:Class ;
+    rdfs:subClassOf med:ClinicalConcept ;
+    rdfs:label "Investigation" .
+
+
+med:Guideline
+    a owl:Class ;
+    rdfs:subClassOf med:ClinicalConcept ;
+    rdfs:label "Guideline" .
+
+
+#################################################################
+# Core relationships
+#################################################################
+
+med:treatedBy
+    a owl:ObjectProperty ;
+    rdfs:label "treated by" ;
+    rdfs:domain med:Condition ;
+    rdfs:range med:Treatment .
+
+
+med:recommendedFor
+    a owl:ObjectProperty ;
+    rdfs:label "recommended for" ;
+    rdfs:domain med:Treatment ;
+    rdfs:range med:PatientGroup .
+
+
+med:contraindicatedIn
+    a owl:ObjectProperty ;
+    rdfs:label "contraindicated in" ;
+    rdfs:domain med:Treatment ;
+    rdfs:range med:PatientGroup .
+
+
+med:notRecommendedFor
+    a owl:ObjectProperty ;
+    rdfs:label "not recommended for" ;
+    rdfs:domain med:Treatment ;
+    rdfs:range med:PatientGroup .
+
+
+med:requiresInvestigation
+    a owl:ObjectProperty ;
+    rdfs:label "requires investigation" ;
+    rdfs:domain med:Condition ;
+    rdfs:range med:Investigation .
+
+
+med:supportedByGuideline
+    a owl:ObjectProperty ;
+    rdfs:label "supported by guideline" ;
+    rdfs:range med:Guideline .
+
+
+#################################################################
+# Provenance properties
+#################################################################
+
+med:sourceDocumentId
+    a owl:DatatypeProperty ;
+    rdfs:label "source document ID" ;
+    rdfs:range xsd:string .
+
+
+med:sourceSection
+    a owl:DatatypeProperty ;
+    rdfs:label "source section" ;
+    rdfs:range xsd:string .
+
+
+med:sourceVersion
+    a owl:DatatypeProperty ;
+    rdfs:label "source version" ;
+    rdfs:range xsd:string .
+
+
+med:assertionStatus
+    a owl:DatatypeProperty ;
+    rdfs:label "assertion status" ;
+    rdfs:range xsd:string .
+
+
+#################################################################
+# Initial controlled concepts
+#################################################################
+
+med:Hypertension
+    a med:Condition ;
+    rdfs:label "Hypertension" .
+
+
+med:Pregnancy
+    a med:PatientGroup ;
+    rdfs:label "Pregnancy" .
+
+
+med:ExampleAntihypertensiveClass
+    a med:DrugClass ;
+    rdfs:label "Example Antihypertensive Class" .
+
+
+#################################################################
+# SYNTHETIC IMPLEMENTATION ASSERTION
+#
+# This assertion exists solely to validate software mechanics.
+# It must not be interpreted as an authoritative clinical rule.
+#################################################################
+
+med:ExampleAntihypertensiveClass
+    med:contraindicatedIn med:Pregnancy ;
+    med:sourceDocumentId "SYNTHETIC-ONTOLOGY-TEST" ;
+    med:sourceSection "Implementation Test" ;
+    med:sourceVersion "1.0" ;
+    med:assertionStatus "SYNTHETIC_TEST_ONLY" .

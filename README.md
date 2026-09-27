@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Complete conventional baseline RAG established with evidence-grounded structured generation.
+Current phase: Lightweight RDF/Turtle ontology loading, querying, and provenance established.
 
 ## Architecture
 
@@ -192,3 +192,36 @@ constraints, ontology validation, reranking, or LangGraph.
 Citation identifiers are checked against the actual retrieval result.
 Deeper claim-to-citation support validation is implemented separately
 later in the project.
+
+## Ontology
+
+MedOntoAgent uses a lightweight RDF/Turtle ontology loaded
+locally using RDFLib.
+
+The initial ontology models selected concept types including:
+
+- conditions
+- treatments
+- drugs and drug classes
+- patient groups
+- investigations
+- guidelines
+
+It defines relationships including:
+
+- treated by
+- recommended for
+- contraindicated in
+- not recommended for
+- requires investigation
+- supported by guideline
+
+The ontology is intentionally much smaller than a full medical
+knowledge graph.
+
+Initial software-development assertions are explicitly marked as
+synthetic. Clinical assertions used in formal evaluation must later
+be grounded in approved clinical source documents.
+
+The ontology is a controlled application asset. MedOntoAgent does
+not execute arbitrary user-supplied RDF or SPARQL.
