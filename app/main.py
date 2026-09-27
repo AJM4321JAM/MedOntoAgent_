@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.routes_llm_test import router as llm_test_router
 from app.config.settings import get_settings
 
 
@@ -14,6 +15,9 @@ app = FastAPI(
     ),
     version=settings.app_version,
 )
+
+
+app.include_router(llm_test_router)
 
 
 @app.get("/")

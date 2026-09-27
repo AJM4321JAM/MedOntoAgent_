@@ -1,17 +1,13 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """
     Central runtime configuration for MedOntoAgent.
-
-    Values can come from:
-    1. environment variables
-    2. the local .env file during development
     """
 
     app_name: str = "MedOntoAgent API"
@@ -48,6 +44,26 @@ class Settings(BaseSettings):
         "CRITICAL",
     ] = "INFO"
 
+    openrouter_api_key: SecretStr | None = None
+
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
+    # Free OpenRouter routing for development.
+    openrouter_model: str = "openrouter/free"
+
+    # Prevent accidental very large output requests.
+    llm_max_output_tokens: int = Field(
+        default=1000,
+        ge=1,
+        le=4096,
+    )
+
+    llm_timeout_seconds: float = Field(
+        default=60.0,
+        gt=0,
+        le=300,
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -59,9 +75,6 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """
-    Return a cached Settings instance.
-
-    The cache ensures that configuration is loaded once and reused
-    throughout the application.
+    Return one cached configuration instance.
     """
     return Settings()

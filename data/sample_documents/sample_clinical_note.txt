@@ -1,0 +1,8 @@
+Sample Clinical Knowledge Document
+
+Purpose:
+This synthetic document exists only to test the MedOntoAgent ingestion pipeline.
+
+Hypertension is a clinical condition involving persistently elevated blood pressure.
+
+This sample contains no patient data and is not intended for clinical decision-making.
