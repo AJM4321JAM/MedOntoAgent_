@@ -22,6 +22,10 @@ class Settings(BaseSettings):
 
     qdrant_collection: str = "medontoagent_clinical_documents"
 
+    qdrant_url: str | None = None
+
+    qdrant_api_key: SecretStr | None = None
+
     retrieval_top_k: int = Field(
         default=5,
         ge=1,

@@ -115,3 +115,36 @@ RAG and MedOntoAgent.
 Document chunks are embedded during ingestion and stored in the vector
 database. User queries are embedded using the same model before
 similarity search.
+
+## Vector Database
+
+MedOntoAgent uses Qdrant Cloud Free as its managed vector database.
+
+Collection:
+
+`medontoagent_clinical_documents`
+
+Vector configuration:
+
+- dense vectors
+- 384 dimensions
+- cosine distance
+
+The vectors are generated locally using
+`sentence-transformers/all-MiniLM-L6-v2`.
+
+Each Qdrant point stores:
+
+- a deterministic point ID,
+- a 384-dimensional embedding,
+- chunk text,
+- document provenance,
+- approval state,
+- clinical domain,
+- source authority,
+- version metadata.
+
+Metadata fields used for filtering are indexed where appropriate.
+
+The application validates existing collection configuration and never
+automatically deletes or recreates an existing collection.
