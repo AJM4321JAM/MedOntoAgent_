@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Conservative document cleaning and section-aware traceable chunking established.
+Current phase: Complete conventional baseline RAG established with evidence-grounded structured generation.
 
 ## Architecture
 
@@ -167,3 +167,28 @@ rewriting, or symbolic clinical rules.
 The same local embedding model is used for both baseline RAG and
 MedOntoAgent so that the later comparison isolates the effect of the
 ontology control layer.
+
+## Baseline RAG
+
+The conventional baseline RAG pipeline is:
+
+1. receive a user query,
+2. embed the query locally with
+   `sentence-transformers/all-MiniLM-L6-v2`,
+3. generate a 384-dimensional query vector,
+4. retrieve up to five APPROVED chunks from Qdrant Cloud,
+5. format the retrieved chunks as controlled evidence,
+6. send only the question and retrieved evidence to the configured
+   OpenRouter development model,
+7. request a JSON response,
+8. validate the JSON locally with Pydantic,
+9. require ANSWERED responses to cite retrieved chunk IDs,
+10. abstain when no evidence is retrieved or the supplied evidence
+    is insufficient.
+
+The baseline deliberately does not use ontology-derived retrieval
+constraints, ontology validation, reranking, or LangGraph.
+
+Citation identifiers are checked against the actual retrieval result.
+Deeper claim-to-citation support validation is implemented separately
+later in the project.
