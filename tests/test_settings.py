@@ -18,6 +18,14 @@ def test_default_settings_are_valid() -> None:
     assert settings.max_agent_retries == 1
     assert settings.log_level == "INFO"
 
+    assert (
+        settings.embedding_model
+        == "sentence-transformers/all-MiniLM-L6-v2"
+    )
+    assert settings.embedding_dimensions == 384
+    assert settings.embedding_batch_size == 32
+    assert settings.embedding_device == "cpu"
+
 
 def test_top_k_cannot_be_zero() -> None:
     with pytest.raises(ValidationError):
@@ -49,4 +57,12 @@ def test_overlap_must_be_smaller_than_chunk_size() -> None:
             _env_file=None,
             max_chunk_words=100,
             chunk_overlap_words=100,
+        )
+
+
+def test_embedding_dimensions_must_be_positive() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            embedding_dimensions=0,
         )

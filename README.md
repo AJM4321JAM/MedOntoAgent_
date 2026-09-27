@@ -96,3 +96,22 @@ These are model-independent starting values and will be evaluated once the embed
 Every chunk preserves source provenance including document ID, title, section, page where available, publisher, clinical domain, version, approval status, and source URL.
 
 The same chunking strategy will be used for baseline RAG and MedOntoAgent to preserve experimental fairness.
+
+## Embeddings
+
+MedOntoAgent uses the local Sentence Transformers model
+`sentence-transformers/all-MiniLM-L6-v2` as the fixed embedding model.
+
+Embedding dimensionality:
+
+- 384 dimensions
+
+Embeddings are generated locally on CPU and do not require an external
+embedding API.
+
+The same embedding model and configuration are used for both baseline
+RAG and MedOntoAgent.
+
+Document chunks are embedded during ingestion and stored in the vector
+database. User queries are embedded using the same model before
+similarity search.
