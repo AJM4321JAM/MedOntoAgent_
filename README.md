@@ -148,3 +148,22 @@ Metadata fields used for filtering are indexed where appropriate.
 
 The application validates existing collection configuration and never
 automatically deletes or recreates an existing collection.
+
+## Baseline Retrieval
+
+The baseline retrieval system:
+
+1. validates the user query,
+2. embeds the query locally using
+   `sentence-transformers/all-MiniLM-L6-v2`,
+3. produces a 384-dimensional query vector,
+4. searches the Qdrant vector database using cosine similarity,
+5. restricts retrieval to `APPROVED` source documents,
+6. returns up to the top 5 chunks with similarity scores and provenance.
+
+The baseline does not use ontology constraints, reranking, query
+rewriting, or symbolic clinical rules.
+
+The same local embedding model is used for both baseline RAG and
+MedOntoAgent so that the later comparison isolates the effect of the
+ontology control layer.
