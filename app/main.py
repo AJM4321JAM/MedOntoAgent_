@@ -1,13 +1,18 @@
 from fastapi import FastAPI
 
+from app.config.settings import get_settings
+
+
+settings = get_settings()
+
 
 app = FastAPI(
-    title="MedOntoAgent API",
+    title=settings.app_name,
     description=(
         "Backend API for the MedOntoAgent ontology-constrained "
         "clinical intelligence system."
     ),
-    version="0.1.0",
+    version=settings.app_version,
 )
 
 
@@ -17,7 +22,8 @@ def root() -> dict[str, str]:
     Basic root endpoint used to confirm that the API is running.
     """
     return {
-        "service": "MedOntoAgent",
+        "service": settings.app_name,
+        "environment": settings.app_env,
         "status": "running",
     }
 
@@ -29,4 +35,5 @@ def health_check() -> dict[str, str]:
     """
     return {
         "status": "healthy",
+        "environment": settings.app_env,
     }

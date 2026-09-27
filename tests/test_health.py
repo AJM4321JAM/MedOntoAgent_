@@ -11,7 +11,8 @@ def test_root_endpoint() -> None:
 
     assert response.status_code == 200
     assert response.json() == {
-        "service": "MedOntoAgent",
+        "service": "MedOntoAgent API",
+        "environment": "development",
         "status": "running",
     }
 
@@ -22,4 +23,5 @@ def test_health_endpoint() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "healthy",
+        "environment": "development",
     }
