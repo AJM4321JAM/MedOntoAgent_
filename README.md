@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Document provenance, checksums, approval governance, duplicate detection, and version registry established.
+Current phase: Conservative document cleaning and section-aware traceable chunking established.
 
 ## Architecture
 
@@ -81,3 +81,18 @@ The prototype tracks:
 Exact duplicate files are rejected using SHA-256 checksums.
 
 Only documents with `APPROVED` status are eligible for the active corpus. Older approved versions can be marked `SUPERSEDED` while remaining available for audit and historical analysis.
+
+## Chunking
+
+Approved source documents are cleaned conservatively and split using deterministic section-aware chunking.
+
+Initial chunking parameters:
+
+- maximum chunk size: 600 words
+- overlap: 80 words
+
+These are model-independent starting values and will be evaluated once the embedding model and real clinical corpus are frozen.
+
+Every chunk preserves source provenance including document ID, title, section, page where available, publisher, clinical domain, version, approval status, and source URL.
+
+The same chunking strategy will be used for baseline RAG and MedOntoAgent to preserve experimental fairness.

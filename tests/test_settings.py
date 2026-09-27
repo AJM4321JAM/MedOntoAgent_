@@ -13,6 +13,8 @@ def test_default_settings_are_valid() -> None:
     assert settings.aws_region == "ap-south-1"
     assert settings.qdrant_collection == "medontoagent_clinical_documents"
     assert settings.retrieval_top_k == 5
+    assert settings.max_chunk_words == 600
+    assert settings.chunk_overlap_words == 80
     assert settings.max_agent_retries == 1
     assert settings.log_level == "INFO"
 
@@ -38,4 +40,13 @@ def test_invalid_environment_is_rejected() -> None:
         Settings(
             _env_file=None,
             app_env="invalid",
+        )
+
+
+def test_overlap_must_be_smaller_than_chunk_size() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            max_chunk_words=100,
+            chunk_overlap_words=100,
         )

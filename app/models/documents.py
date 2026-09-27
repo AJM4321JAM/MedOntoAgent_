@@ -130,3 +130,66 @@ class DocumentMetadata(BaseModel):
     superseded_by_document_id: str | None = None
 
     registered_at: datetime
+
+
+class DocumentChunk(BaseModel):
+    """
+    One retrieval-ready text chunk derived from an approved
+    clinical source document.
+    """
+
+    chunk_id: str = Field(
+        min_length=5,
+    )
+
+    document_id: str = Field(
+        min_length=5,
+    )
+
+    chunk_index: int = Field(
+        ge=0,
+    )
+
+    title: str = Field(
+        min_length=1,
+    )
+
+    section_title: str | None = None
+
+    page_number: int | None = Field(
+        default=None,
+        ge=1,
+    )
+
+    document_type: str = Field(
+        min_length=1,
+    )
+
+    clinical_domain: str = Field(
+        min_length=1,
+    )
+
+    publisher: str = Field(
+        min_length=1,
+    )
+
+    source_authority: SourceAuthority
+
+    version: str = Field(
+        min_length=1,
+    )
+
+    approval_status: ApprovalStatus
+
+    publication_date: date | None = None
+    effective_date: date | None = None
+
+    source_url: str | None = None
+
+    text: str = Field(
+        min_length=1,
+    )
+
+    word_count: int = Field(
+        ge=1,
+    )
