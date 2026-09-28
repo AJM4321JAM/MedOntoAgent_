@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Natural-language clinical concept extraction and deterministic ontology mapping established.
+Current phase: Explicit ontology relationship discovery and structured retrieval-constraint generation established.
 
 ## Architecture
 
@@ -257,3 +257,30 @@ The resulting OntologyContext records:
 Direct deterministic query scanning complements the LLM so that
 known ontology terms explicitly present in the query can still be
 detected when the model misses them.
+
+## Ontology Constraints
+
+Mapped query concepts are inspected for explicit relationships
+already present in the RDF ontology.
+
+Supported v1 constraint categories include:
+
+- contraindication
+- not recommended
+- recommendation
+- treatment relationship
+- investigation requirement
+
+The LLM does not create ontology relationships.
+
+Explicit ontology relationships are converted into structured
+OntologyConstraint objects with provenance.
+
+The same constraints may generate RetrievalHints while preserving
+the original user query.
+
+Ontology-derived Qdrant payload filtering is not yet performed,
+because stored chunks have not yet been tagged with ontology
+concept metadata.
+
+The conventional baseline RAG pipeline remains unchanged.

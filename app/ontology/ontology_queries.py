@@ -37,12 +37,9 @@ def _concept_uri(
     concept_name: str,
 ) -> URIRef:
     """
-    Convert a controlled MedOntoAgent concept name into
-    its ontology URI.
+    Convert a controlled concept name into its ontology URI.
     """
-    normalized = (
-        concept_name.strip()
-    )
+    normalized = concept_name.strip()
 
     if not normalized:
         raise ValueError(
@@ -58,12 +55,9 @@ def _predicate_uri(
     predicate_name: str,
 ) -> URIRef:
     """
-    Convert a controlled relationship name into
-    its ontology URI.
+    Convert a controlled predicate name into its ontology URI.
     """
-    normalized = (
-        predicate_name.strip()
-    )
+    normalized = predicate_name.strip()
 
     if not normalized:
         raise ValueError(
@@ -80,9 +74,9 @@ def _label_for(
     uri: URIRef,
 ) -> str:
     """
-    Return an RDF label when one exists.
+    Return rdfs:label when present.
 
-    Otherwise return the final URI component.
+    Fall back to the URI local identifier.
     """
     label = graph.value(
         uri,
@@ -97,17 +91,9 @@ def _label_for(
             label
         )
 
-    text = str(
+    return ontology_concept_name(
         uri
     )
-
-    if "/" in text:
-        return text.rsplit(
-            "/",
-            1,
-        )[-1]
-
-    return text
 
 
 def concept_exists(
@@ -115,8 +101,7 @@ def concept_exists(
     concept_name: str,
 ) -> bool:
     """
-    Return True when a named MedOntoAgent ontology
-    resource exists in the graph.
+    Return True when the named ontology resource exists.
     """
     concept_uri = _concept_uri(
         concept_name
@@ -142,8 +127,7 @@ def relationship_exists(
     object_name: str,
 ) -> bool:
     """
-    Return True when the exact controlled relationship
-    exists in the ontology.
+    Return True when the exact RDF relationship exists.
     """
     subject_uri = _concept_uri(
         subject_name
@@ -170,10 +154,10 @@ def get_relationships_for_subject(
     subject_name: str,
 ) -> list[OntologyRelation]:
     """
-    Return ontology object relationships for one subject.
+    Return explicit URI-to-URI relationships for one subject.
 
-    RDF type declarations, labels, and datatype provenance
-    fields are intentionally excluded.
+    RDF type declarations, labels, and literal provenance
+    properties are excluded.
     """
     subject_uri = _concept_uri(
         subject_name
@@ -241,13 +225,9 @@ def get_provenance(
     subject_name: str,
 ) -> dict[str, str | None]:
     """
-    Return the current subject-level provenance metadata.
+    Return current Phase-11/13 subject-level provenance.
 
-    This is sufficient for the Phase-11 implementation test.
-
-    Later, clinically meaningful ontology assertions will
-    move to assertion-level provenance so separate relations
-    can reference separate evidence sources.
+    This will later be upgraded to assertion-level provenance.
     """
     subject_uri = _concept_uri(
         subject_name
@@ -282,3 +262,183 @@ def get_provenance(
             MED.assertionStatus
         ),
     }
+
+
+def ontology_predicate_name(
+    predicate_uri: URIRef,
+) -> str:
+    """
+    Return the local MedOntoAgent identifier for a predicate.
+    """
+    value = str(
+        predicate_uri
+    )
+
+    namespace = str(
+        MED
+    )
+
+    if value.startswith(
+        namespace
+    ):
+        return value.removeprefix(
+            namespace
+        )
+
+    if "#" in value:
+        return value.rsplit(
+            "#",
+            1,
+        )[-1]
+
+    if "/" in value:
+        return value.rsplit(
+            "/",
+            1,
+        )[-1]
+
+    return value
+
+
+def ontology_concept_name(
+    concept_uri: URIRef,
+) -> str:
+    """
+    Return the local identifier for an ontology concept.
+    """
+    value = str(
+        concept_uri
+    )
+
+    namespace = str(
+        MED
+    )
+
+    if value.startswith(
+        namespace
+    ):
+        return value.removeprefix(
+            namespace
+        )
+
+    if "#" in value:
+        return value.rsplit(
+            "#",
+            1,
+        )[-1]
+
+    if "/" in value:
+        return value.rsplit(
+            "/",
+            1,
+        )[-1]
+
+    return value
+
+
+def find_relationships_between_concepts(
+    graph: Graph,
+    *,
+    concept_uris: list[str],
+) -> list[OntologyRelation]:
+    """
+    Find explicit RDF relationships whose subject and object
+    are both among the ontology concepts mapped from the query.
+
+    No inference is performed.
+    """
+    selected: set[
+        URIRef
+    ] = {
+        URIRef(
+            uri
+        )
+        for uri in concept_uris
+        if uri.strip()
+    }
+
+    if len(
+        selected
+    ) < 2:
+        return []
+
+    relationships: list[
+        OntologyRelation
+    ] = []
+
+    seen: set[
+        tuple[
+            str,
+            str,
+            str,
+        ]
+    ] = set()
+
+    for subject_uri in selected:
+        for (
+            predicate,
+            object_value,
+        ) in graph.predicate_objects(
+            subject_uri
+        ):
+            if not isinstance(
+                predicate,
+                URIRef,
+            ):
+                continue
+
+            if not isinstance(
+                object_value,
+                URIRef,
+            ):
+                continue
+
+            if object_value not in selected:
+                continue
+
+            if predicate in {
+                RDF.type,
+                RDFS.label,
+            }:
+                continue
+
+            key = (
+                str(subject_uri),
+                str(predicate),
+                str(object_value),
+            )
+
+            if key in seen:
+                continue
+
+            relationships.append(
+                OntologyRelation(
+                    subject_uri=str(
+                        subject_uri
+                    ),
+                    subject_label=_label_for(
+                        graph,
+                        subject_uri,
+                    ),
+                    predicate_uri=str(
+                        predicate
+                    ),
+                    predicate_label=_label_for(
+                        graph,
+                        predicate,
+                    ),
+                    object_uri=str(
+                        object_value
+                    ),
+                    object_label=_label_for(
+                        graph,
+                        object_value,
+                    ),
+                )
+            )
+
+            seen.add(
+                key
+            )
+
+    return relationships

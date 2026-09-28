@@ -3,9 +3,26 @@ from app.ontology.ontology_loader import (
 )
 from app.ontology.ontology_queries import (
     concept_exists,
+    find_relationships_between_concepts,
     get_provenance,
     get_relationships_for_subject,
     relationship_exists,
+)
+
+
+EXAMPLE_URI = (
+    "https://medontoagent.example.org/"
+    "ontology/ExampleAntihypertensiveClass"
+)
+
+PREGNANCY_URI = (
+    "https://medontoagent.example.org/"
+    "ontology/Pregnancy"
+)
+
+HYPERTENSION_URI = (
+    "https://medontoagent.example.org/"
+    "ontology/Hypertension"
 )
 
 
@@ -154,3 +171,71 @@ def test_known_condition_exists() -> None:
         graph,
         "Hypertension",
     )
+
+
+def test_relationship_discovery_between_selected_concepts() -> None:
+    graph = load_ontology()
+
+    relationships = (
+        find_relationships_between_concepts(
+            graph,
+            concept_uris=[
+                EXAMPLE_URI,
+                PREGNANCY_URI,
+            ],
+        )
+    )
+
+    assert len(
+        relationships
+    ) == 1
+
+    relation = (
+        relationships[0]
+    )
+
+    assert (
+        relation.subject_label
+        == "Example Antihypertensive Class"
+    )
+
+    assert (
+        relation.predicate_label
+        == "contraindicated in"
+    )
+
+    assert (
+        relation.object_label
+        == "Pregnancy"
+    )
+
+
+def test_relationship_discovery_does_not_pull_unrelated_data() -> None:
+    graph = load_ontology()
+
+    relationships = (
+        find_relationships_between_concepts(
+            graph,
+            concept_uris=[
+                HYPERTENSION_URI,
+                PREGNANCY_URI,
+            ],
+        )
+    )
+
+    assert relationships == []
+
+
+def test_single_concept_cannot_form_relationship_pair() -> None:
+    graph = load_ontology()
+
+    relationships = (
+        find_relationships_between_concepts(
+            graph,
+            concept_uris=[
+                PREGNANCY_URI,
+            ],
+        )
+    )
+
+    assert relationships == []
