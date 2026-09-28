@@ -6,6 +6,9 @@ from app.api.routes_baseline import (
 from app.api.routes_llm_test import (
     router as llm_test_router,
 )
+from app.api.routes_query import (
+    router as query_router,
+)
 from app.config.settings import (
     get_settings,
 )
@@ -30,6 +33,10 @@ app.include_router(
 
 app.include_router(
     baseline_router
+)
+
+app.include_router(
+    query_router
 )
 
 
