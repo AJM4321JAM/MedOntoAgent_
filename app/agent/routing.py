@@ -12,7 +12,7 @@ def route_after_retrieval(
     "abstain",
 ]:
     """
-    Generate only when retrieved evidence exists.
+    Continue only when evidence exists.
     """
     retrieval = state.get(
         "retrieval_result"
@@ -27,6 +27,26 @@ def route_after_retrieval(
     return "generate"
 
 
+def route_after_generation(
+    state: MedOntoState,
+) -> Literal[
+    "validate",
+    "abstain",
+]:
+    """
+    Explicit model abstention terminates safely.
+
+    We do not pressure the model to answer by retrying.
+    """
+    if state.get(
+        "generation_abstained",
+        False,
+    ):
+        return "abstain"
+
+    return "validate"
+
+
 def route_after_validation(
     state: MedOntoState,
 ) -> Literal[
@@ -35,9 +55,7 @@ def route_after_validation(
     "abstain",
 ]:
     """
-    Finish when mock validation passes.
-
-    Otherwise retry only while budget remains.
+    Finish, retry within budget, or abstain.
     """
     if state.get(
         "validation_passed",

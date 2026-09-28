@@ -4,6 +4,9 @@ from app.agent.state import (
 from app.config.settings import (
     get_settings,
 )
+from app.llm.medonto_generation import (
+    generate_medonto_draft,
+)
 from app.ontology.concept_mapper import (
     build_ontology_context,
 )
@@ -25,10 +28,7 @@ def initialize_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Initialize workflow-control state.
-
-    If max_agent_retries is present in Settings, use it.
-    Otherwise Phase 15 safely defaults to one regeneration.
+    Initialize bounded workflow-control fields.
     """
     settings = get_settings()
 
@@ -49,6 +49,7 @@ def initialize_node(
         "validation_passed": False,
         "validation_reason": None,
         "abstention_reason": None,
+        "generation_abstained": False,
     }
 
 
@@ -56,20 +57,13 @@ def concept_mapping_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Build Phase-12 OntologyContext.
+    Build the Phase-12 OntologyContext.
     """
-    query = (
-        state["query"]
-        .strip()
-    )
-
     graph = load_ontology()
 
-    context = (
-        build_ontology_context(
-            query,
-            graph=graph,
-        )
+    context = build_ontology_context(
+        state["query"],
+        graph=graph,
     )
 
     return {
@@ -83,22 +77,16 @@ def constraint_generation_node(
     """
     Build explicit Phase-13 ontology constraints.
     """
-    query = state["query"]
-
-    ontology_context = (
-        state["ontology_context"]
-    )
-
     graph = load_ontology()
 
-    constraint_set = (
-        build_constraints(
-            query=query,
-            ontology_context=(
-                ontology_context
-            ),
-            graph=graph,
-        )
+    constraint_set = build_constraints(
+        query=state["query"],
+        ontology_context=(
+            state[
+                "ontology_context"
+            ]
+        ),
+        graph=graph,
     )
 
     return {
@@ -112,8 +100,7 @@ def retrieval_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Perform Phase-14 ontology-aware retrieval using the
-    ontology state already present in the graph.
+    Execute Phase-14 ontology-aware retrieval.
     """
     result = (
         retrieve_with_ontology_state(
@@ -144,41 +131,37 @@ def retrieval_node(
     }
 
 
-def mock_generation_node(
+def grounded_generation_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Deterministic Phase-15 draft generation.
-
-    No LLM call is made here.
+    Execute real evidence-grounded generation.
     """
-    retrieval = (
-        state["retrieval_result"]
-    )
-
-    if (
-        retrieval.result_count
-        == 0
-    ):
-        return {
-            "draft_answer": "",
-        }
-
-    first_chunk = (
-        retrieval
-        .retrieved_chunks[0]
-    )
-
-    draft = (
-        "PHASE 15 MOCK DRAFT\n"
-        f"Evidence chunk: "
-        f"{first_chunk.chunk_id}\n"
-        f"Evidence: "
-        f"{first_chunk.text}"
+    draft = generate_medonto_draft(
+        query=state["query"],
+        retrieval=(
+            state[
+                "retrieval_result"
+            ]
+        ),
+        constraint_set=(
+            state[
+                "constraint_set"
+            ]
+        ),
+        validation_feedback=(
+            state.get(
+                "validation_reason"
+            )
+        ),
     )
 
     return {
-        "draft_answer": draft,
+        "draft_output": draft,
+        "generation_abstained": (
+            draft.status
+            == "ABSTAINED"
+        ),
     }
 
 
@@ -186,21 +169,28 @@ def mock_validation_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Deterministically validate workflow mechanics only.
+    Temporary Phase-16 structural validation.
 
-    This is not clinical verification.
+    The generation module has already checked citation IDs and
+    constraint identities.
+
+    This node does NOT perform semantic claim entailment.
     """
+    draft = state.get(
+        "draft_output"
+    )
+
     retrieval = state.get(
         "retrieval_result"
     )
 
-    draft = (
-        state.get(
-            "draft_answer",
-            "",
-        )
-        .strip()
-    )
+    if draft is None:
+        return {
+            "validation_passed": False,
+            "validation_reason": (
+                "No structured draft was generated."
+            ),
+        }
 
     if (
         retrieval is None
@@ -209,36 +199,31 @@ def mock_validation_node(
         return {
             "validation_passed": False,
             "validation_reason": (
-                "No retrieved evidence "
-                "is available."
+                "No retrieved evidence is available."
             ),
         }
 
-    if not draft:
+    if draft.status != "DRAFT":
         return {
             "validation_passed": False,
             "validation_reason": (
-                "No draft answer "
-                "was generated."
+                "Generated output is not a DRAFT."
             ),
         }
 
-    if not draft.startswith(
-        "PHASE 15 MOCK DRAFT"
-    ):
+    if not draft.claims:
         return {
             "validation_passed": False,
             "validation_reason": (
-                "Draft is not the expected "
-                "Phase-15 mock format."
+                "DRAFT contains no claims."
             ),
         }
 
     return {
         "validation_passed": True,
         "validation_reason": (
-            "Phase-15 orchestration "
-            "requirements passed."
+            "Phase-16 structural checks passed. "
+            "Semantic validation is not yet implemented."
         ),
     }
 
@@ -247,7 +232,10 @@ def increment_retry_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Consume exactly one graph-level retry.
+    Consume one graph-level semantic retry.
+
+    validation_reason is intentionally preserved so the next
+    generation attempt receives corrective feedback.
     """
     return {
         "retry_count": (
@@ -258,7 +246,6 @@ def increment_retry_node(
             + 1
         ),
         "validation_passed": False,
-        "validation_reason": None,
     }
 
 
@@ -266,10 +253,7 @@ def mock_validated_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Temporary successful terminal status.
-
-    MOCK_VALIDATED means only that orchestration mechanics
-    passed.
+    Temporary success status until Phase-17 validators exist.
     """
     return {
         "orchestration_status": (
@@ -282,10 +266,14 @@ def abstain_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Terminate safely without producing a fabricated answer.
+    Safely terminate without fabricating an answer.
     """
     retrieval = state.get(
         "retrieval_result"
+    )
+
+    draft = state.get(
+        "draft_output"
     )
 
     if (
@@ -296,6 +284,15 @@ def abstain_node(
             "No sufficient retrieved evidence "
             "was available."
         )
+
+    elif (
+        state.get(
+            "generation_abstained",
+            False,
+        )
+        and draft is not None
+    ):
+        reason = draft.answer
 
     else:
         reason = (

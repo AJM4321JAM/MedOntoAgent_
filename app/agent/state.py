@@ -1,10 +1,16 @@
-from typing import Literal, TypedDict
+from typing import (
+    Literal,
+    TypedDict,
+)
 
 from app.models.constraints import (
     OntologyConstraintSet,
 )
 from app.models.ontology import (
     OntologyContext,
+)
+from app.models.responses import (
+    MedOntoDraftOutput,
 )
 from app.models.retrieval import (
     RetrievalResult,
@@ -19,35 +25,37 @@ OrchestrationStatus = Literal[
 ]
 
 
-class MedOntoState(TypedDict, total=False):
+class MedOntoState(
+    TypedDict,
+    total=False,
+):
     """
-    Shared state carried through the bounded MedOntoAgent graph.
+    Shared state carried through MedOntoAgent.
 
-    Phase 15 uses deterministic mock generation and validation.
+    Phase 16 uses real grounded generation but still uses
+    temporary structural/mock validation.
     """
 
-    # Original request
     query: str
 
-    # Ontology processing
     ontology_context: OntologyContext
     constraint_set: OntologyConstraintSet
 
-    # Retrieval
     retrieval_result: RetrievalResult
     used_ontology_filter: bool
     retrieval_relaxed: bool
 
-    # Temporary Phase-15 generation state
-    draft_answer: str
+    draft_output: MedOntoDraftOutput
+    generation_abstained: bool
 
-    # Temporary Phase-15 validation state
     validation_passed: bool
     validation_reason: str | None
 
-    # Bounded workflow control
     retry_count: int
     max_retries: int
 
-    orchestration_status: OrchestrationStatus
+    orchestration_status: (
+        OrchestrationStatus
+    )
+
     abstention_reason: str | None

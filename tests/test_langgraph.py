@@ -10,11 +10,11 @@ from app.agent.graph import (
 from app.agent.nodes import (
     abstain_node,
     increment_retry_node,
-    mock_generation_node,
     mock_validated_node,
     mock_validation_node,
 )
 from app.agent.routing import (
+    route_after_generation,
     route_after_retrieval,
     route_after_validation,
 )
@@ -23,6 +23,11 @@ from app.agent.state import (
 )
 from app.models.documents import (
     SourceAuthority,
+)
+from app.models.responses import (
+    MedOntoClaim,
+    MedOntoConstraintReference,
+    MedOntoDraftOutput,
 )
 from app.models.retrieval import (
     RetrievedChunk,
@@ -73,6 +78,64 @@ def evidence_retrieval() -> RetrievalResult:
     )
 
 
+def deterministic_draft() -> MedOntoDraftOutput:
+    return MedOntoDraftOutput(
+        answer=(
+            "Synthetic grounded answer."
+        ),
+        claims=[
+            MedOntoClaim(
+                claim_text=(
+                    "Synthetic evidence "
+                    "supports this claim."
+                ),
+                citation_chunk_ids=[
+                    "DOC-test-CHUNK-0000"
+                ],
+            )
+        ],
+        considered_constraints=[],
+        status="DRAFT",
+    )
+
+
+def deterministic_generation_node(
+    state: MedOntoState,
+) -> dict:
+    """
+    Test-only deterministic replacement for the real
+    Phase-16 OpenRouter generation node.
+    """
+    return {
+        "draft_output": (
+            deterministic_draft()
+        ),
+        "generation_abstained": False,
+    }
+
+
+def deterministic_abstention_node(
+    state: MedOntoState,
+) -> dict:
+    """
+    Simulate explicit model abstention without calling an LLM.
+    """
+    draft = MedOntoDraftOutput(
+        answer=(
+            "The approved retrieved evidence is "
+            "insufficient to answer the question."
+        ),
+        claims=[],
+        considered_constraints=[],
+        status="ABSTAINED",
+    )
+
+    return {
+        "draft_output": draft,
+        "generation_abstained": True,
+    }
+
+
 def test_graph_compiles() -> None:
     graph = build_medonto_graph()
 
@@ -106,6 +169,32 @@ def test_route_after_retrieval_generates_with_evidence() -> None:
             state
         )
         == "generate"
+    )
+
+
+def test_route_after_generation_validates_draft() -> None:
+    state: MedOntoState = {
+        "generation_abstained": False,
+    }
+
+    assert (
+        route_after_generation(
+            state
+        )
+        == "validate"
+    )
+
+
+def test_route_after_generation_abstains_when_model_abstains() -> None:
+    state: MedOntoState = {
+        "generation_abstained": True,
+    }
+
+    assert (
+        route_after_generation(
+            state
+        )
+        == "abstain"
     )
 
 
@@ -158,8 +247,11 @@ def build_deterministic_test_graph(
     retrieval_result: RetrievalResult,
 ):
     """
-    Test graph containing only deterministic Phase-15
-    generation, validation and terminal routing.
+    Deterministic Phase-16 graph.
+
+    The production graph uses real OpenRouter generation.
+    This test graph replaces only generation so unit tests
+    never call external services.
     """
 
     def inject_retrieval(
@@ -182,7 +274,7 @@ def build_deterministic_test_graph(
 
     builder.add_node(
         "generate",
-        mock_generation_node,
+        deterministic_generation_node,
     )
 
     builder.add_node(
@@ -219,9 +311,13 @@ def build_deterministic_test_graph(
         },
     )
 
-    builder.add_edge(
+    builder.add_conditional_edges(
         "generate",
-        "validate",
+        route_after_generation,
+        {
+            "validate": "validate",
+            "abstain": "abstain",
+        },
     )
 
     builder.add_conditional_edges(
@@ -278,7 +374,7 @@ def test_graph_abstains_when_retrieval_is_empty() -> None:
     )
 
 
-def test_graph_reaches_mock_validated_with_evidence() -> None:
+def test_graph_reaches_mock_validated_with_draft() -> None:
     graph = (
         build_deterministic_test_graph(
             evidence_retrieval()
@@ -311,17 +407,111 @@ def test_graph_reaches_mock_validated_with_evidence() -> None:
     )
 
     assert (
-        "PHASE 15 MOCK DRAFT"
-        in result[
-            "draft_answer"
+        result[
+            "draft_output"
         ]
+        .status
+        == "DRAFT"
+    )
+
+
+def test_graph_routes_model_abstention_directly_to_abstain() -> None:
+    """
+    Explicit generation abstention must not enter validation
+    or retry.
+    """
+
+    def inject_retrieval(
+        state: MedOntoState,
+    ) -> dict:
+        return {
+            "retrieval_result": (
+                evidence_retrieval()
+            ),
+        }
+
+    builder = StateGraph(
+        MedOntoState
+    )
+
+    builder.add_node(
+        "retrieve",
+        inject_retrieval,
+    )
+
+    builder.add_node(
+        "generate",
+        deterministic_abstention_node,
+    )
+
+    builder.add_node(
+        "abstain",
+        abstain_node,
+    )
+
+    builder.add_edge(
+        START,
+        "retrieve",
+    )
+
+    builder.add_edge(
+        "retrieve",
+        "generate",
+    )
+
+    builder.add_conditional_edges(
+        "generate",
+        route_after_generation,
+        {
+            "validate": "abstain",
+            "abstain": "abstain",
+        },
+    )
+
+    builder.add_edge(
+        "abstain",
+        END,
+    )
+
+    graph = builder.compile()
+
+    result = graph.invoke(
+        {
+            "query": "test question",
+            "retry_count": 0,
+            "max_retries": 1,
+            "orchestration_status": (
+                "RUNNING"
+            ),
+        }
+    )
+
+    assert (
+        result[
+            "orchestration_status"
+        ]
+        == "ABSTAINED"
+    )
+
+    assert (
+        result[
+            "generation_abstained"
+        ]
+        is True
+    )
+
+    assert (
+        result[
+            "retry_count"
+        ]
+        == 0
     )
 
 
 def test_graph_retry_is_bounded() -> None:
     """
-    Force validation failure and prove exactly one retry
-    can occur.
+    Force validation failure and prove exactly one
+    regeneration occurs.
     """
 
     generation_count = {
@@ -345,9 +535,10 @@ def test_graph_retry_is_bounded() -> None:
         ] += 1
 
         return {
-            "draft_answer": (
-                "PHASE 15 MOCK DRAFT"
+            "draft_output": (
+                deterministic_draft()
             ),
+            "generation_abstained": False,
         }
 
     def always_fail_validation(
@@ -456,4 +647,11 @@ def test_graph_retry_is_bounded() -> None:
             "orchestration_status"
         ]
         == "ABSTAINED"
+    )
+
+    assert (
+        result[
+            "validation_reason"
+        ]
+        == "Forced validation failure."
     )
