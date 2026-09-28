@@ -19,6 +19,15 @@ from app.ontology.ontology_loader import (
 from app.retrieval.medonto_retriever import (
     retrieve_with_ontology_state,
 )
+from app.validation.citation_validator import (
+    validate_citations,
+)
+from app.validation.ontology_validator import (
+    validate_ontology_compliance,
+)
+from app.validation.response_validator import (
+    validate_response,
+)
 
 
 DEFAULT_MAX_AGENT_RETRIES = 1
@@ -50,6 +59,9 @@ def initialize_node(
         "validation_reason": None,
         "abstention_reason": None,
         "generation_abstained": False,
+        "citation_validation": None,
+        "ontology_validation": None,
+        "response_validation": None,
     }
 
 
@@ -57,7 +69,7 @@ def concept_mapping_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Build the Phase-12 OntologyContext.
+    Build the ontology context.
     """
     graph = load_ontology()
 
@@ -75,7 +87,7 @@ def constraint_generation_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Build explicit Phase-13 ontology constraints.
+    Build explicit ontology constraints.
     """
     graph = load_ontology()
 
@@ -100,7 +112,7 @@ def retrieval_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Execute Phase-14 ontology-aware retrieval.
+    Execute ontology-aware retrieval.
     """
     result = (
         retrieve_with_ontology_state(
@@ -135,7 +147,7 @@ def grounded_generation_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Execute real evidence-grounded generation.
+    Generate a real grounded structured draft.
     """
     draft = generate_medonto_draft(
         query=state["query"],
@@ -165,16 +177,12 @@ def grounded_generation_node(
     }
 
 
-def mock_validation_node(
+def validation_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Temporary Phase-16 structural validation.
-
-    The generation module has already checked citation IDs and
-    constraint identities.
-
-    This node does NOT perform semantic claim entailment.
+    Run independent citation and ontology validation and then
+    combine their outputs deterministically.
     """
     draft = state.get(
         "draft_output"
@@ -184,46 +192,92 @@ def mock_validation_node(
         "retrieval_result"
     )
 
+    constraint_set = state.get(
+        "constraint_set"
+    )
+
     if draft is None:
         return {
             "validation_passed": False,
             "validation_reason": (
-                "No structured draft was generated."
+                "Structured draft output is missing."
             ),
+            "response_validation": None,
         }
 
-    if (
-        retrieval is None
-        or retrieval.result_count == 0
-    ):
+    if retrieval is None:
         return {
             "validation_passed": False,
             "validation_reason": (
-                "No retrieved evidence is available."
+                "Retrieval result is missing."
             ),
+            "response_validation": None,
         }
 
-    if draft.status != "DRAFT":
+    if constraint_set is None:
         return {
             "validation_passed": False,
             "validation_reason": (
-                "Generated output is not a DRAFT."
+                "Ontology constraint set is missing."
             ),
+            "response_validation": None,
         }
 
-    if not draft.claims:
-        return {
-            "validation_passed": False,
-            "validation_reason": (
-                "DRAFT contains no claims."
+    citation_validation = (
+        validate_citations(
+            draft=draft,
+            retrieval=retrieval,
+        )
+    )
+
+    ontology_validation = (
+        validate_ontology_compliance(
+            draft=draft,
+            constraint_set=(
+                constraint_set
             ),
-        }
+        )
+    )
+
+    response_validation = (
+        validate_response(
+            citation_validation=(
+                citation_validation
+            ),
+            ontology_validation=(
+                ontology_validation
+            ),
+            retry_count=(
+                state.get(
+                    "retry_count",
+                    0,
+                )
+            ),
+            max_retries=(
+                state.get(
+                    "max_retries",
+                    1,
+                )
+            ),
+        )
+    )
 
     return {
-        "validation_passed": True,
+        "citation_validation": (
+            citation_validation
+        ),
+        "ontology_validation": (
+            ontology_validation
+        ),
+        "response_validation": (
+            response_validation
+        ),
+        "validation_passed": (
+            response_validation.status
+            == "VERIFIED"
+        ),
         "validation_reason": (
-            "Phase-16 structural checks passed. "
-            "Semantic validation is not yet implemented."
+            response_validation.feedback
         ),
     }
 
@@ -232,10 +286,10 @@ def increment_retry_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Consume one graph-level semantic retry.
+    Consume one retry while preserving validation feedback.
 
-    validation_reason is intentionally preserved so the next
-    generation attempt receives corrective feedback.
+    Old validation objects are cleared because they refer to
+    the previous draft.
     """
     return {
         "retry_count": (
@@ -246,18 +300,22 @@ def increment_retry_node(
             + 1
         ),
         "validation_passed": False,
+        "generation_abstained": False,
+        "citation_validation": None,
+        "ontology_validation": None,
+        "response_validation": None,
     }
 
 
-def mock_validated_node(
+def verified_node(
     state: MedOntoState,
 ) -> dict:
     """
-    Temporary success status until Phase-17 validators exist.
+    Terminal successful validation state.
     """
     return {
         "orchestration_status": (
-            "MOCK_VALIDATED"
+            "VERIFIED"
         ),
     }
 
@@ -274,6 +332,10 @@ def abstain_node(
 
     draft = state.get(
         "draft_output"
+    )
+
+    response_validation = state.get(
+        "response_validation"
     )
 
     if (
@@ -293,6 +355,14 @@ def abstain_node(
         and draft is not None
     ):
         reason = draft.answer
+
+    elif (
+        response_validation is not None
+        and response_validation.feedback
+    ):
+        reason = (
+            response_validation.feedback
+        )
 
     else:
         reason = (

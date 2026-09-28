@@ -83,7 +83,6 @@ draft = result.get(
     "draft_output"
 )
 
-
 if draft is not None:
     print()
 
@@ -153,6 +152,116 @@ if draft is not None:
     else:
         print(
             "None"
+        )
+
+
+citation_validation = result.get(
+    "citation_validation"
+)
+
+if citation_validation is not None:
+    print()
+
+    print(
+        "CITATION VALIDATION:"
+    )
+
+    if citation_validation.items:
+        for item in (
+            citation_validation.items
+        ):
+            print(
+                "- Claim",
+                item.claim_index + 1,
+                item.verdict,
+            )
+
+            print(
+                "  Reason:",
+                item.reason,
+            )
+
+            print(
+                "  Citations:",
+                item.citation_chunk_ids,
+            )
+
+    else:
+        print(
+            "None"
+        )
+
+    print(
+        "ALL CLAIMS SUPPORTED:",
+        citation_validation
+        .all_claims_supported,
+    )
+
+
+ontology_validation = result.get(
+    "ontology_validation"
+)
+
+if ontology_validation is not None:
+    print()
+
+    print(
+        "ONTOLOGY VALIDATION:"
+    )
+
+    if ontology_validation.items:
+        for item in (
+            ontology_validation.items
+        ):
+            print(
+                "-",
+                item.constraint_type,
+                item.subject_name,
+                item.predicate_name,
+                item.object_name,
+            )
+
+            print(
+                "  Verdict:",
+                item.verdict,
+            )
+
+            print(
+                "  Reason:",
+                item.reason,
+            )
+
+    else:
+        print(
+            "None"
+        )
+
+    print(
+        "HAS ONTOLOGY CONFLICT:",
+        ontology_validation
+        .has_conflict,
+    )
+
+
+response_validation = result.get(
+    "response_validation"
+)
+
+if response_validation is not None:
+    print()
+
+    print(
+        "FINAL VALIDATION:",
+        response_validation.status,
+    )
+
+    if response_validation.feedback:
+        print(
+            "VALIDATION FEEDBACK:"
+        )
+
+        print(
+            response_validation.feedback
         )
 
 

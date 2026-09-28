@@ -173,7 +173,7 @@ def build_ontology_lexicon(
     graph: Graph,
 ) -> dict[str, URIRef]:
     """
-    Build a deterministic normalized-term → ontology-URI
+    Build a deterministic normalized-term -> ontology-URI
     lookup table.
 
     Terms include:
@@ -526,6 +526,9 @@ def extract_candidate_concepts(
 
     At most one regeneration attempt is allowed if a successful
     model call returns malformed or schema-invalid output.
+
+    Direct callers receive ConceptMappingError when extraction
+    cannot be completed safely.
     """
     settings = (
         settings
@@ -695,12 +698,22 @@ def build_ontology_context(
     settings: Settings | None = None,
 ) -> OntologyContext:
     """
-    Build the natural-language → ontology bridge.
+    Build the natural-language -> ontology bridge.
 
     Sources of mapped concepts:
 
     1. LLM candidate extraction followed by deterministic mapping.
     2. Direct deterministic matching against ontology labels/aliases.
+
+    The deterministic scan is authoritative for ontology identity.
+
+    If optional LLM candidate extraction fails after its bounded
+    retry, ontology-context construction degrades safely to the
+    deterministic scan rather than failing the complete workflow.
+
+    The fallback does not invent concepts, URIs, or relationships.
+    It can only recognize terms already present in the controlled
+    ontology lexicon.
 
     Results are merged by ontology URI.
     """
@@ -718,12 +731,21 @@ def build_ontology_context(
         or load_ontology()
     )
 
-    extracted = (
-        extract_candidate_concepts(
-            normalized_query,
-            settings=settings,
+    try:
+        extracted = (
+            extract_candidate_concepts(
+                normalized_query,
+                settings=settings,
+            )
         )
-    )
+
+    except (
+        ConceptMappingError,
+        LLMServiceError,
+    ):
+        extracted = ExtractedConcepts(
+            concepts=[]
+        )
 
     mapped_from_llm, unknown = (
         map_candidate_concepts(

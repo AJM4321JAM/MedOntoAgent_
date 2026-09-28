@@ -11,9 +11,9 @@ from app.agent.nodes import (
     grounded_generation_node,
     increment_retry_node,
     initialize_node,
-    mock_validated_node,
-    mock_validation_node,
     retrieval_node,
+    validation_node,
+    verified_node,
 )
 from app.agent.routing import (
     route_after_generation,
@@ -27,10 +27,7 @@ from app.agent.state import (
 
 def build_medonto_graph():
     """
-    Build and compile the Phase-16 MedOntoAgent graph.
-
-    Generation is real.
-    Final semantic validation remains temporary.
+    Build and compile the validated MedOntoAgent graph.
     """
     builder = StateGraph(
         MedOntoState
@@ -63,7 +60,7 @@ def build_medonto_graph():
 
     builder.add_node(
         "validate",
-        mock_validation_node,
+        validation_node,
     )
 
     builder.add_node(
@@ -72,8 +69,8 @@ def build_medonto_graph():
     )
 
     builder.add_node(
-        "validated",
-        mock_validated_node,
+        "verified",
+        verified_node,
     )
 
     builder.add_node(
@@ -123,7 +120,7 @@ def build_medonto_graph():
         "validate",
         route_after_validation,
         {
-            "validated": "validated",
+            "verified": "verified",
             "retry": "retry",
             "abstain": "abstain",
         },
@@ -135,7 +132,7 @@ def build_medonto_graph():
     )
 
     builder.add_edge(
-        "validated",
+        "verified",
         END,
     )
 

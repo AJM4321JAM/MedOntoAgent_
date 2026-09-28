@@ -10,6 +10,7 @@ from app.models.ontology import (
     ExtractedConcepts,
 )
 from app.ontology.concept_mapper import (
+    ConceptMappingError,
     build_ontology_context,
     build_ontology_lexicon,
     extract_candidate_concepts,
@@ -181,6 +182,7 @@ def test_llm_candidate_extraction_is_structured(
     settings = create_test_settings()
 
     message = MagicMock()
+
     message.content = (
         '{"concepts":['
         '"Example Antihypertensive Class",'
@@ -192,6 +194,7 @@ def test_llm_candidate_extraction_is_structured(
     choice.message = message
 
     completion = MagicMock()
+
     completion.choices = [
         choice
     ]
@@ -312,4 +315,125 @@ def test_build_context_retains_unknowns(
     assert (
         context.unknown_count
         == 1
+    )
+
+
+@patch(
+    "app.ontology.concept_mapper."
+    "extract_candidate_concepts"
+)
+def test_build_context_falls_back_when_llm_extraction_fails(
+    mock_extract: MagicMock,
+) -> None:
+    """
+    A transient or policy refusal from the free routed model
+    must not destroy ontology context when deterministic ontology
+    matching can identify the concepts directly.
+    """
+    graph = load_ontology()
+
+    mock_extract.side_effect = (
+        ConceptMappingError(
+            (
+                "Concept extraction did not produce "
+                "valid structured output."
+            )
+        )
+    )
+
+    context = build_ontology_context(
+        (
+            "Can Example Antihypertensive Class "
+            "be used during pregnancy?"
+        ),
+        graph=graph,
+    )
+
+    names = {
+        concept.concept_name
+        for concept
+        in context.mapped_concepts
+    }
+
+    assert (
+        context.extracted_concepts
+        == []
+    )
+
+    assert (
+        "ExampleAntihypertensiveClass"
+        in names
+    )
+
+    assert (
+        "Pregnancy"
+        in names
+    )
+
+    assert (
+        context.mapped_count
+        == 2
+    )
+
+    assert (
+        context.unknown_concepts
+        == []
+    )
+
+    assert (
+        context.unknown_count
+        == 0
+    )
+
+
+@patch(
+    "app.ontology.concept_mapper."
+    "extract_candidate_concepts"
+)
+def test_build_context_fallback_does_not_invent_unknown_concepts(
+    mock_extract: MagicMock,
+) -> None:
+    """
+    When extraction fails and the query contains no ontology term,
+    the fallback must return no fabricated concept.
+    """
+    graph = load_ontology()
+
+    mock_extract.side_effect = (
+        ConceptMappingError(
+            "Synthetic extraction failure."
+        )
+    )
+
+    context = build_ontology_context(
+        (
+            "What does this completely unrelated "
+            "phrase mean?"
+        ),
+        graph=graph,
+    )
+
+    assert (
+        context.extracted_concepts
+        == []
+    )
+
+    assert (
+        context.mapped_concepts
+        == []
+    )
+
+    assert (
+        context.unknown_concepts
+        == []
+    )
+
+    assert (
+        context.mapped_count
+        == 0
+    )
+
+    assert (
+        context.unknown_count
+        == 0
     )

@@ -34,9 +34,7 @@ def route_after_generation(
     "abstain",
 ]:
     """
-    Explicit model abstention terminates safely.
-
-    We do not pressure the model to answer by retrying.
+    Explicit model abstention terminates immediately.
     """
     if state.get(
         "generation_abstained",
@@ -50,30 +48,37 @@ def route_after_generation(
 def route_after_validation(
     state: MedOntoState,
 ) -> Literal[
-    "validated",
+    "verified",
     "retry",
     "abstain",
 ]:
     """
-    Finish, retry within budget, or abstain.
+    Route from deterministic response-validation policy.
     """
-    if state.get(
-        "validation_passed",
-        False,
-    ):
-        return "validated"
-
-    retry_count = state.get(
-        "retry_count",
-        0,
+    result = state.get(
+        "response_validation"
     )
 
-    max_retries = state.get(
-        "max_retries",
-        1,
-    )
+    if result is None:
+        retry_count = state.get(
+            "retry_count",
+            0,
+        )
 
-    if retry_count < max_retries:
+        max_retries = state.get(
+            "max_retries",
+            0,
+        )
+
+        if retry_count < max_retries:
+            return "retry"
+
+        return "abstain"
+
+    if result.status == "VERIFIED":
+        return "verified"
+
+    if result.status == "RETRY":
         return "retry"
 
     return "abstain"

@@ -15,11 +15,16 @@ from app.models.responses import (
 from app.models.retrieval import (
     RetrievalResult,
 )
+from app.models.validation import (
+    CitationValidationResult,
+    OntologyValidationResult,
+    ResponseValidationResult,
+)
 
 
 OrchestrationStatus = Literal[
     "RUNNING",
-    "MOCK_VALIDATED",
+    "VERIFIED",
     "ABSTAINED",
     "ERROR",
 ]
@@ -30,10 +35,7 @@ class MedOntoState(
     total=False,
 ):
     """
-    Shared state carried through MedOntoAgent.
-
-    Phase 16 uses real grounded generation but still uses
-    temporary structural/mock validation.
+    Shared state carried through the validated MedOntoAgent graph.
     """
 
     query: str
@@ -47,6 +49,21 @@ class MedOntoState(
 
     draft_output: MedOntoDraftOutput
     generation_abstained: bool
+
+    citation_validation: (
+        CitationValidationResult
+        | None
+    )
+
+    ontology_validation: (
+        OntologyValidationResult
+        | None
+    )
+
+    response_validation: (
+        ResponseValidationResult
+        | None
+    )
 
     validation_passed: bool
     validation_reason: str | None
