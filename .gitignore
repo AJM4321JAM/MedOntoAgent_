@@ -32,3 +32,7 @@ data/processed/*
 # Local source documents should not be committed automatically
 data/source_documents/*
 !data/source_documents/.gitkeep
+
+# Local evaluation run artifacts
+evals/results/*.json
+!evals/results/.gitkeep

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import (
@@ -26,6 +27,20 @@ ExpectedBehavior = Literal[
 DatasetSplit = Literal[
     "DEVELOPMENT",
     "FINAL",
+]
+
+
+EvaluationSystem = Literal[
+    "BASELINE",
+    "MEDONTO",
+]
+
+
+EvaluationSystemStatus = Literal[
+    "ANSWERED",
+    "VERIFIED",
+    "ABSTAINED",
+    "ERROR",
 ]
 
 
@@ -248,3 +263,114 @@ def validate_final_dataset_ready(
             )
 
     return problems
+
+
+class EvaluationResultRecord(BaseModel):
+    """
+    One standardized result produced by either evaluation system.
+    """
+
+    question_id: str = Field(
+        min_length=1,
+    )
+
+    category: EvaluationCategory
+
+    question: str = Field(
+        min_length=3,
+    )
+
+    expected_behavior: ExpectedBehavior
+
+    system: EvaluationSystem
+
+    system_status: EvaluationSystemStatus
+
+    behavior_match: bool
+
+    answer: str | None = None
+
+    citation_chunk_ids: list[str] = Field(
+        default_factory=list,
+    )
+
+    retrieved_chunk_ids: list[str] = Field(
+        default_factory=list,
+    )
+
+    ontology_constraints: list[str] = Field(
+        default_factory=list,
+    )
+
+    used_ontology_filter: bool | None = None
+
+    retrieval_relaxed: bool | None = None
+
+    retry_count: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    latency_ms: float = Field(
+        ge=0,
+    )
+
+    error_message: str | None = None
+
+
+class EvaluationRunArtifact(BaseModel):
+    """
+    Versioned result artifact for one complete dataset execution.
+    """
+
+    run_id: str = Field(
+        min_length=1,
+    )
+
+    created_at: datetime
+
+    system: EvaluationSystem
+
+    dataset_name: str = Field(
+        min_length=1,
+    )
+
+    dataset_version: str = Field(
+        min_length=1,
+    )
+
+    corpus_version: str = Field(
+        min_length=1,
+    )
+
+    configuration: dict[
+        str,
+        str | int | float | bool | None,
+    ]
+
+    results: list[
+        EvaluationResultRecord
+    ] = Field(
+        min_length=1,
+    )
+
+    @model_validator(
+        mode="after"
+    )
+    def validate_result_systems(
+        self,
+    ) -> "EvaluationRunArtifact":
+        if any(
+            result.system
+            != self.system
+            for result
+            in self.results
+        ):
+            raise ValueError(
+                (
+                    "Every result record must use "
+                    "the artifact system."
+                )
+            )
+
+        return self
