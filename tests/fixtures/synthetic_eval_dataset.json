@@ -1,0 +1,41 @@
+{
+  "dataset_name": "Synthetic Test Dataset",
+  "dataset_version": "1.0",
+  "description": "Synthetic automated-test fixture.",
+  "split": "DEVELOPMENT",
+  "corpus_version": "synthetic-v1",
+  "frozen": false,
+  "questions": [
+    {
+      "question_id": "TEST-001",
+      "split": "DEVELOPMENT",
+      "category": "ONTOLOGY_CONSTRAINT",
+      "question": "Can Example Antihypertensive Class be used during pregnancy?",
+      "expected_behavior": "ANSWER",
+      "reference_answer": "The synthetic source describes the class as contraindicated in Pregnancy.",
+      "expected_document_ids": [],
+      "expected_chunk_ids": [],
+      "expected_ontology_concepts": [
+        "ExampleAntihypertensiveClass",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "ExampleAntihypertensiveClass contraindicatedIn Pregnancy"
+      ],
+      "notes": "Synthetic test."
+    },
+    {
+      "question_id": "TEST-002",
+      "split": "DEVELOPMENT",
+      "category": "NO_EVIDENCE",
+      "question": "What is the evidence for an unrelated surgical procedure?",
+      "expected_behavior": "ABSTAIN",
+      "reference_answer": null,
+      "expected_document_ids": [],
+      "expected_chunk_ids": [],
+      "expected_ontology_concepts": [],
+      "expected_ontology_relationships": [],
+      "notes": "Synthetic abstention test."
+    }
+  ]
+}

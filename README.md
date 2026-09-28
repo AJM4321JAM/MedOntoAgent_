@@ -15,7 +15,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Governed reusable document ingestion, ontology tagging, embedding, and vector-index lifecycle established.
+Current phase: Versioned development and final evaluation datasets, golden-question schema, and evaluation freeze controls established.
 
 The current implementation includes:
 
@@ -722,3 +722,30 @@ Phase 19 will build the reusable ingestion pipeline tying together:
 - ingestion status.
 
 This will replace the current one-off synthetic indexing scripts with a reusable production-style ingestion path.
+
+## Evaluation Dataset
+
+MedOntoAgent separates development questions from final evaluation questions.
+
+The development dataset may be used for implementation debugging, retrieval tuning, prompt refinement, and ontology-alias refinement.
+
+The final golden dataset is a 25-question controlled benchmark consisting of:
+
+- 7 straightforward evidence questions,
+- 6 ontology/contraindication questions,
+- 4 patient-group questions,
+- 3 guideline/version questions,
+- 3 no-evidence questions,
+- 2 difficult/ambiguous questions.
+
+The final clinical questions and reference answers are not invented during software development. They must be derived from the frozen approved corpus.
+
+Formal evaluation cannot run until:
+
+- the corpus version is frozen,
+- placeholders are removed,
+- reference answers are populated for answerable questions,
+- the dataset is marked frozen.
+
+The same frozen final dataset is used for both conventional baseline RAG and MedOntoAgent.
+

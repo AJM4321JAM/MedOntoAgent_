@@ -1,0 +1,7 @@
+SYNTHETIC EVALUATION SOURCE
+
+This file exists only for automated MedOntoAgent testing.
+
+Example Antihypertensive Class is contraindicated in Pregnancy in this synthetic test scenario.
+
+This is not medical guidance.

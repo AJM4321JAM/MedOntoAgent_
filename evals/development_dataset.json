@@ -1,0 +1,56 @@
+{
+  "dataset_name": "MedOntoAgent Development Dataset",
+  "dataset_version": "0.1",
+  "description": "Development-only questions used for implementation debugging and tuning. These questions must not be used as the final evaluation set.",
+  "split": "DEVELOPMENT",
+  "corpus_version": "development-synthetic-v1",
+  "frozen": false,
+  "questions": [
+    {
+      "question_id": "DEV-001",
+      "split": "DEVELOPMENT",
+      "category": "ONTOLOGY_CONSTRAINT",
+      "question": "Can Example Antihypertensive Class be used during pregnancy?",
+      "expected_behavior": "ANSWER",
+      "reference_answer": "The synthetic evaluation evidence describes Example Antihypertensive Class as contraindicated in Pregnancy.",
+      "expected_document_ids": [],
+      "expected_chunk_ids": [],
+      "expected_ontology_concepts": [
+        "ExampleAntihypertensiveClass",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "ExampleAntihypertensiveClass contraindicatedIn Pregnancy"
+      ],
+      "notes": "Synthetic software-development question only. Not medical guidance."
+    },
+    {
+      "question_id": "DEV-002",
+      "split": "DEVELOPMENT",
+      "category": "STRAIGHTFORWARD_EVIDENCE",
+      "question": "What does the synthetic corpus say about Example Antihypertensive Class?",
+      "expected_behavior": "ANSWER",
+      "reference_answer": "The synthetic corpus contains test information about Example Antihypertensive Class.",
+      "expected_document_ids": [],
+      "expected_chunk_ids": [],
+      "expected_ontology_concepts": [
+        "ExampleAntihypertensiveClass"
+      ],
+      "expected_ontology_relationships": [],
+      "notes": "Development retrieval question."
+    },
+    {
+      "question_id": "DEV-003",
+      "split": "DEVELOPMENT",
+      "category": "NO_EVIDENCE",
+      "question": "What does the synthetic corpus say about an unrelated surgical procedure?",
+      "expected_behavior": "ABSTAIN",
+      "reference_answer": null,
+      "expected_document_ids": [],
+      "expected_chunk_ids": [],
+      "expected_ontology_concepts": [],
+      "expected_ontology_relationships": [],
+      "notes": "Development abstention test."
+    }
+  ]
+}
