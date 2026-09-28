@@ -13,7 +13,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Lightweight RDF/Turtle ontology loading, querying, and provenance established.
+Current phase: Natural-language clinical concept extraction and deterministic ontology mapping established.
 
 ## Architecture
 
@@ -225,3 +225,35 @@ be grounded in approved clinical source documents.
 
 The ontology is a controlled application asset. MedOntoAgent does
 not execute arbitrary user-supplied RDF or SPARQL.
+
+## Concept Mapping
+
+MedOntoAgent maps natural-language clinical queries to ontology
+concepts using two complementary mechanisms:
+
+1. LLM extraction of candidate clinical phrases.
+2. Deterministic matching against controlled RDF labels and
+   SKOS aliases.
+
+The LLM cannot create ontology resources, select ontology URIs,
+or establish ontology relationships.
+
+All candidate phrases are resolved deterministically against the
+RDF graph.
+
+Candidates that cannot be safely resolved remain unknown rather
+than being mapped through semantic guessing.
+
+The resulting OntologyContext records:
+
+- the original query,
+- extracted concepts,
+- resolved concepts,
+- ontology URIs,
+- canonical labels,
+- unknown concepts,
+- mapped and unknown counts.
+
+Direct deterministic query scanning complements the LLM so that
+known ontology terms explicitly present in the query can still be
+detected when the model misses them.

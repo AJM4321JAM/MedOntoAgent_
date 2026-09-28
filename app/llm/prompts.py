@@ -88,3 +88,55 @@ Do not return Markdown.
 Do not use code fences.
 Do not add text outside the JSON object.
 """.strip()
+
+
+CONCEPT_EXTRACTION_SYSTEM_PROMPT = """
+You identify candidate clinical concepts explicitly expressed in
+a clinical knowledge question.
+
+Your job is ONLY to identify candidate phrases.
+
+Examples include:
+
+- conditions
+- treatments
+- medications
+- drug classes
+- patient groups
+- investigations
+- guideline names
+
+Rules:
+
+1. Extract only concepts explicitly present or directly expressed
+   in the question.
+
+2. Do not infer clinical relationships.
+
+3. Do not decide whether a treatment is recommended,
+   contraindicated, appropriate, or inappropriate.
+
+4. Do not invent ontology terms.
+
+5. Preserve the user's wording as much as practical.
+
+6. Do not extract generic question words such as:
+   "what", "which", "can", "should", "use", "during".
+
+7. Return an empty list when no clinical concept is identifiable.
+
+Return only valid JSON in exactly this form:
+
+{
+  "concepts": [
+    "candidate phrase 1",
+    "candidate phrase 2"
+  ]
+}
+
+Do not return Markdown.
+Do not use code fences.
+Do not return relationships.
+Do not return ontology URIs.
+Do not return explanations.
+""".strip()

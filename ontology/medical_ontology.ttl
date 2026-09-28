@@ -3,6 +3,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 
 #################################################################
@@ -144,24 +145,30 @@ med:assertionStatus
 
 med:Hypertension
     a med:Condition ;
-    rdfs:label "Hypertension" .
+    rdfs:label "Hypertension" ;
+    skos:altLabel "high blood pressure" .
 
 
 med:Pregnancy
     a med:PatientGroup ;
-    rdfs:label "Pregnancy" .
+    rdfs:label "Pregnancy" ;
+    skos:altLabel "pregnant patient" ;
+    skos:altLabel "pregnant patients" ;
+    skos:altLabel "pregnant person" .
 
 
 med:ExampleAntihypertensiveClass
     a med:DrugClass ;
-    rdfs:label "Example Antihypertensive Class" .
+    rdfs:label "Example Antihypertensive Class" ;
+    skos:altLabel "example antihypertensive" ;
+    skos:altLabel "example antihypertensive drug class" .
 
 
 #################################################################
 # SYNTHETIC IMPLEMENTATION ASSERTION
 #
-# This assertion exists solely to validate software mechanics.
-# It must not be interpreted as an authoritative clinical rule.
+# Software-development assertion only.
+# Not authoritative clinical knowledge.
 #################################################################
 
 med:ExampleAntihypertensiveClass
