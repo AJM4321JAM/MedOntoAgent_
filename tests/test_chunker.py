@@ -31,7 +31,9 @@ def create_metadata(
         approval_status=approval_status,
         checksum_sha256="a" * 64,
         file_size_bytes=100,
-        registered_at=datetime.now(timezone.utc),
+        registered_at=datetime.now(
+            timezone.utc
+        ),
     )
 
 
@@ -40,7 +42,9 @@ def create_loaded_document(
 ) -> LoadedDocument:
     return LoadedDocument(
         filename="guideline.txt",
-        file_path=Path("guideline.txt"),
+        file_path=Path(
+            "guideline.txt"
+        ),
         file_type="txt",
         pages=[
             DocumentPage(
@@ -49,7 +53,9 @@ def create_loaded_document(
             )
         ],
         full_text=text,
-        character_count=len(text),
+        character_count=len(
+            text
+        ),
     )
 
 
@@ -58,26 +64,51 @@ def test_short_document_creates_one_chunk() -> None:
         "Clinical treatment recommendation."
     )
 
+    metadata = create_metadata()
+
     chunks = chunk_document(
         document,
-        create_metadata(),
+        metadata,
         max_chunk_words=100,
         overlap_words=10,
     )
 
     assert len(chunks) == 1
-    assert chunks[0].chunk_index == 0
-    assert chunks[0].document_id == "DOC-123456789abc"
-    assert chunks[0].word_count == 3
+
+    assert (
+        chunks[0].chunk_index
+        == 0
+    )
+
+    assert (
+        chunks[0].document_id
+        == "DOC-123456789abc"
+    )
+
+    assert (
+        chunks[0].word_count
+        == 3
+    )
+
+    assert (
+        chunks[0].checksum_sha256
+        == metadata.checksum_sha256
+    )
 
 
 def test_chunk_ids_are_stable_and_ordered() -> None:
     text = " ".join(
         f"word{i}"
-        for i in range(250)
+        for i in range(
+            250
+        )
     )
 
-    document = create_loaded_document(text)
+    document = (
+        create_loaded_document(
+            text
+        )
+    )
 
     chunks = chunk_document(
         document,
@@ -102,11 +133,17 @@ def test_chunk_ids_are_stable_and_ordered() -> None:
 def test_chunks_have_expected_overlap() -> None:
     words = [
         f"word{i}"
-        for i in range(180)
+        for i in range(
+            180
+        )
     ]
 
-    document = create_loaded_document(
-        " ".join(words)
+    document = (
+        create_loaded_document(
+            " ".join(
+                words
+            )
+        )
     )
 
     chunks = chunk_document(
@@ -116,10 +153,22 @@ def test_chunks_have_expected_overlap() -> None:
         overlap_words=20,
     )
 
-    first_words = chunks[0].text.split()
-    second_words = chunks[1].text.split()
+    first_words = (
+        chunks[0]
+        .text
+        .split()
+    )
 
-    assert first_words[-20:] == second_words[:20]
+    second_words = (
+        chunks[1]
+        .text
+        .split()
+    )
+
+    assert (
+        first_words[-20:]
+        == second_words[:20]
+    )
 
 
 def test_numbered_heading_is_preserved_as_section() -> None:
@@ -130,7 +179,11 @@ def test_numbered_heading_is_preserved_as_section() -> None:
         "Treatment information appears here."
     )
 
-    document = create_loaded_document(text)
+    document = (
+        create_loaded_document(
+            text
+        )
+    )
 
     chunks = chunk_document(
         document,
@@ -144,17 +197,29 @@ def test_numbered_heading_is_preserved_as_section() -> None:
         for chunk in chunks
     ]
 
-    assert "1. Diagnosis" in section_titles
-    assert "2. Treatment" in section_titles
+    assert (
+        "1. Diagnosis"
+        in section_titles
+    )
+
+    assert (
+        "2. Treatment"
+        in section_titles
+    )
 
 
 def test_uppercase_heading_is_detected() -> None:
     text = (
         "CONTRAINDICATIONS\n"
-        "This section contains contraindication evidence."
+        "This section contains "
+        "contraindication evidence."
     )
 
-    document = create_loaded_document(text)
+    document = (
+        create_loaded_document(
+            text
+        )
+    )
 
     chunks = chunk_document(
         document,
@@ -170,8 +235,10 @@ def test_uppercase_heading_is_detected() -> None:
 
 
 def test_pending_document_cannot_enter_active_chunks() -> None:
-    document = create_loaded_document(
-        "Clinical recommendation."
+    document = (
+        create_loaded_document(
+            "Clinical recommendation."
+        )
     )
 
     metadata = create_metadata(
@@ -189,13 +256,17 @@ def test_pending_document_cannot_enter_active_chunks() -> None:
 
 
 def test_overlap_cannot_equal_chunk_size() -> None:
-    document = create_loaded_document(
-        "Some clinical information."
+    document = (
+        create_loaded_document(
+            "Some clinical information."
+        )
     )
 
     with pytest.raises(
         ChunkingError,
-        match="overlap_words must be smaller",
+        match=(
+            "overlap_words must be smaller"
+        ),
     ):
         chunk_document(
             document,

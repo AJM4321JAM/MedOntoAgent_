@@ -1,5 +1,7 @@
 import re
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+)
 
 from app.models.documents import (
     ApprovalStatus,
@@ -36,40 +38,66 @@ def chunk_document(
     """
     Split a cleaned document into traceable, section-aware chunks.
     """
-    if metadata.approval_status != ApprovalStatus.APPROVED:
+    if (
+        metadata.approval_status
+        != ApprovalStatus.APPROVED
+    ):
         raise ChunkingError(
-            "Only APPROVED documents may be chunked "
-            "for the active corpus."
+            (
+                "Only APPROVED documents may be chunked "
+                "for the active corpus."
+            )
         )
 
     if max_chunk_words < 1:
         raise ChunkingError(
-            "max_chunk_words must be greater than zero."
+            (
+                "max_chunk_words must be "
+                "greater than zero."
+            )
         )
 
     if overlap_words < 0:
         raise ChunkingError(
-            "overlap_words cannot be negative."
+            (
+                "overlap_words cannot be "
+                "negative."
+            )
         )
 
     if overlap_words >= max_chunk_words:
         raise ChunkingError(
-            "overlap_words must be smaller than max_chunk_words."
+            (
+                "overlap_words must be smaller "
+                "than max_chunk_words."
+            )
         )
 
-    sections = _extract_sections(document)
+    sections = _extract_sections(
+        document
+    )
 
-    chunks: list[DocumentChunk] = []
+    chunks: list[
+        DocumentChunk
+    ] = []
 
     for section in sections:
-        section_chunks = _split_text_with_overlap(
-            section.text,
-            max_chunk_words=max_chunk_words,
-            overlap_words=overlap_words,
+        section_chunks = (
+            _split_text_with_overlap(
+                section.text,
+                max_chunk_words=(
+                    max_chunk_words
+                ),
+                overlap_words=(
+                    overlap_words
+                ),
+            )
         )
 
         for chunk_text in section_chunks:
-            chunk_index = len(chunks)
+            chunk_index = len(
+                chunks
+            )
 
             chunk_id = (
                 f"{metadata.document_id}"
@@ -79,29 +107,63 @@ def chunk_document(
             chunks.append(
                 DocumentChunk(
                     chunk_id=chunk_id,
-                    document_id=metadata.document_id,
-                    chunk_index=chunk_index,
+                    document_id=(
+                        metadata.document_id
+                    ),
+                    chunk_index=(
+                        chunk_index
+                    ),
                     title=metadata.title,
-                    section_title=section.title,
-                    page_number=section.page_number,
-                    document_type=metadata.document_type,
-                    clinical_domain=metadata.clinical_domain,
-                    publisher=metadata.publisher,
-                    source_authority=metadata.source_authority,
-                    version=metadata.version,
-                    approval_status=metadata.approval_status,
-                    publication_date=metadata.publication_date,
-                    effective_date=metadata.effective_date,
-                    source_url=metadata.source_url,
+                    section_title=(
+                        section.title
+                    ),
+                    page_number=(
+                        section.page_number
+                    ),
+                    document_type=(
+                        metadata.document_type
+                    ),
+                    clinical_domain=(
+                        metadata.clinical_domain
+                    ),
+                    publisher=(
+                        metadata.publisher
+                    ),
+                    source_authority=(
+                        metadata.source_authority
+                    ),
+                    version=(
+                        metadata.version
+                    ),
+                    approval_status=(
+                        metadata.approval_status
+                    ),
+                    publication_date=(
+                        metadata.publication_date
+                    ),
+                    effective_date=(
+                        metadata.effective_date
+                    ),
+                    source_url=(
+                        metadata.source_url
+                    ),
                     text=chunk_text,
-                    word_count=len(chunk_text.split()),
+                    word_count=len(
+                        chunk_text.split()
+                    ),
+                    checksum_sha256=(
+                        metadata
+                        .checksum_sha256
+                    ),
                 )
             )
 
     if not chunks:
         raise ChunkingError(
-            f"No chunks were created from document "
-            f"{metadata.document_id}."
+            (
+                "No chunks were created from document "
+                f"{metadata.document_id}."
+            )
         )
 
     return chunks
@@ -115,11 +177,21 @@ def _extract_sections(
 
     Heading detection is intentionally conservative.
     """
-    sections: list[TextSection] = []
+    sections: list[
+        TextSection
+    ] = []
 
-    current_title: str | None = None
-    current_lines: list[str] = []
-    current_page: int | None = None
+    current_title: (
+        str | None
+    ) = None
+
+    current_lines: list[
+        str
+    ] = []
+
+    current_page: (
+        int | None
+    ) = None
 
     def flush_current_section() -> None:
         nonlocal current_lines
@@ -131,9 +203,13 @@ def _extract_sections(
         if text:
             sections.append(
                 TextSection(
-                    title=current_title,
+                    title=(
+                        current_title
+                    ),
                     text=text,
-                    page_number=current_page,
+                    page_number=(
+                        current_page
+                    ),
                 )
             )
 
@@ -142,32 +218,51 @@ def _extract_sections(
     for page in document.pages:
         lines = [
             line.strip()
-            for line in page.text.splitlines()
+            for line
+            in page.text.splitlines()
             if line.strip()
         ]
 
         for line in lines:
-            if _looks_like_heading(line):
+            if _looks_like_heading(
+                line
+            ):
                 flush_current_section()
 
                 current_title = line
-                current_page = page.page_number
+                current_page = (
+                    page.page_number
+                )
+
                 continue
 
             if not current_lines:
-                current_page = page.page_number
+                current_page = (
+                    page.page_number
+                )
 
-            current_lines.append(line)
+            current_lines.append(
+                line
+            )
 
     flush_current_section()
 
-    if not sections and document.full_text.strip():
+    if (
+        not sections
+        and document.full_text.strip()
+    ):
         sections.append(
             TextSection(
                 title=None,
-                text=document.full_text.strip(),
+                text=(
+                    document
+                    .full_text
+                    .strip()
+                ),
                 page_number=(
-                    document.pages[0].page_number
+                    document
+                    .pages[0]
+                    .page_number
                     if document.pages
                     else None
                 ),
@@ -183,8 +278,8 @@ def _looks_like_heading(
     """
     Conservative heuristic for likely headings.
 
-    It recognizes short all-uppercase headings and common numbered
-    section-heading patterns.
+    It recognizes short all-uppercase headings and common
+    numbered section-heading patterns.
     """
     stripped = line.strip()
 
@@ -199,9 +294,6 @@ def _looks_like_heading(
     if len(words) > 14:
         return False
 
-    # Example:
-    # "3. Treatment"
-    # "4.2 Pregnancy"
     numbered_heading = re.match(
         r"^\d+(?:\.\d+)*\.?\s+\S+",
         stripped,
@@ -210,15 +302,17 @@ def _looks_like_heading(
     if numbered_heading:
         return True
 
-    # Example:
-    # "TREATMENT IN PREGNANCY"
     letters = [
         char
         for char in stripped
         if char.isalpha()
     ]
 
-    if letters and stripped.upper() == stripped:
+    if (
+        letters
+        and stripped.upper()
+        == stripped
+    ):
         return True
 
     return False
@@ -238,12 +332,19 @@ def _split_text_with_overlap(
     if not words:
         return []
 
-    if len(words) <= max_chunk_words:
+    if (
+        len(words)
+        <= max_chunk_words
+    ):
         return [
-            " ".join(words)
+            " ".join(
+                words
+            )
         ]
 
-    chunks: list[str] = []
+    chunks: list[
+        str
+    ] = []
 
     start = 0
 
@@ -253,18 +354,25 @@ def _split_text_with_overlap(
             len(words),
         )
 
-        chunk_words = words[start:end]
+        chunk_words = words[
+            start:end
+        ]
 
         chunk_text = " ".join(
             chunk_words
         ).strip()
 
         if chunk_text:
-            chunks.append(chunk_text)
+            chunks.append(
+                chunk_text
+            )
 
         if end >= len(words):
             break
 
-        start = end - overlap_words
+        start = (
+            end
+            - overlap_words
+        )
 
     return chunks

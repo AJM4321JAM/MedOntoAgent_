@@ -34,8 +34,12 @@ def create_test_settings(
         qdrant_collection=(
             "test_collection"
         ),
-        embedding_model="test-model",
-        embedding_dimensions=dimensions,
+        embedding_model=(
+            "test-model"
+        ),
+        embedding_dimensions=(
+            dimensions
+        ),
         embedding_batch_size=2,
         embedding_device="cpu",
     )
@@ -66,8 +70,12 @@ def create_test_chunk(
             "DOC-123456789abc"
         ),
         "chunk_index": 0,
-        "title": "Synthetic Test Document",
-        "section_title": "Treatment",
+        "title": (
+            "Synthetic Test Document"
+        ),
+        "section_title": (
+            "Treatment"
+        ),
         "page_number": 1,
         "document_type": (
             "Synthetic Test Document"
@@ -75,10 +83,18 @@ def create_test_chunk(
         "clinical_domain": (
             "Software Testing"
         ),
-        "publisher": "MedOntoAgent",
-        "source_authority": "OTHER",
-        "version": "1.0",
-        "approval_status": "APPROVED",
+        "publisher": (
+            "MedOntoAgent"
+        ),
+        "source_authority": (
+            "OTHER"
+        ),
+        "version": (
+            "1.0"
+        ),
+        "approval_status": (
+            "APPROVED"
+        ),
         "publication_date": None,
         "effective_date": None,
         "source_url": None,
@@ -95,6 +111,9 @@ def create_test_chunk(
             ontology_labels
             or []
         ),
+        "checksum_sha256": (
+            "a" * 64
+        ),
     }
 
     return chunk
@@ -104,7 +123,9 @@ def test_missing_qdrant_url_is_rejected() -> None:
     settings = Settings(
         _env_file=None,
         qdrant_url=None,
-        qdrant_api_key="test-key",
+        qdrant_api_key=(
+            "test-key"
+        ),
     )
 
     with pytest.raises(
@@ -173,6 +194,11 @@ def test_chunk_to_payload_preserves_metadata() -> None:
         == "Software Testing"
     )
 
+    assert (
+        payload["checksum_sha256"]
+        == "a" * 64
+    )
+
 
 def test_chunk_payload_contains_ontology_metadata() -> None:
     chunk = create_test_chunk(
@@ -226,7 +252,9 @@ def test_untagged_chunk_payload_has_empty_ontology_metadata() -> None:
 
 
 def test_chunk_vector_count_mismatch_is_rejected() -> None:
-    settings = create_test_settings()
+    settings = (
+        create_test_settings()
+    )
 
     chunk = create_test_chunk()
 
@@ -255,7 +283,9 @@ def test_vector_dimension_mismatch_is_rejected() -> None:
         )
     )
 
-    chunk = create_test_chunk()
+    chunk = (
+        create_test_chunk()
+    )
 
     client = MagicMock()
 
@@ -288,7 +318,9 @@ def test_valid_chunk_is_upserted() -> None:
         )
     )
 
-    chunk = create_test_chunk()
+    chunk = (
+        create_test_chunk()
+    )
 
     client = MagicMock()
 
@@ -348,7 +380,9 @@ def test_existing_collection_is_not_recreated() -> None:
 
     vector_config.size = 4
 
-    from qdrant_client.http import models
+    from qdrant_client.http import (
+        models,
+    )
 
     vector_config.distance = (
         models.Distance.COSINE
@@ -402,7 +436,9 @@ def test_existing_collection_receives_missing_ontology_index() -> None:
 
     vector_config.size = 4
 
-    from qdrant_client.http import models
+    from qdrant_client.http import (
+        models,
+    )
 
     vector_config.distance = (
         models.Distance.COSINE
@@ -455,7 +491,9 @@ def test_existing_collection_receives_missing_ontology_index() -> None:
 
 
 def test_retrieve_point_by_chunk_id_returns_none_when_missing() -> None:
-    settings = create_test_settings()
+    settings = (
+        create_test_settings()
+    )
 
     client = MagicMock()
 
@@ -464,10 +502,14 @@ def test_retrieve_point_by_chunk_id_returns_none_when_missing() -> None:
         None,
     )
 
-    result = retrieve_point_by_chunk_id(
-        chunk_id="DOC-123-CHUNK-0000",
-        settings=settings,
-        client=client,
+    result = (
+        retrieve_point_by_chunk_id(
+            chunk_id=(
+                "DOC-123-CHUNK-0000"
+            ),
+            settings=settings,
+            client=client,
+        )
     )
 
     assert result is None

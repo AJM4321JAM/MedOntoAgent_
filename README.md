@@ -15,7 +15,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Final MedOntoAgent FastAPI query endpoint and public VERIFIED/ABSTAINED response contract established.
+Current phase: Governed reusable document ingestion, ontology tagging, embedding, and vector-index lifecycle established.
 
 The current implementation includes:
 
@@ -149,17 +149,43 @@ Embeddings are generated locally and therefore do not require a paid embedding A
 
 ## Document Ingestion
 
-The initial ingestion layer supports:
+MedOntoAgent provides a controlled ingestion pipeline for PDF, DOCX, and TXT source documents.
 
-- PDF
-- DOCX
-- UTF-8 TXT
+The pipeline performs:
 
-Source documents are converted into a common validated internal representation before cleaning, chunking, metadata generation, embedding, or retrieval.
+1. source-file validation,
+2. SHA-256 checksum calculation,
+3. duplicate detection,
+4. document metadata registration,
+5. approval-status enforcement,
+6. document extraction,
+7. conservative cleaning,
+8. deterministic chunking,
+9. deterministic ontology tagging,
+10. local embedding generation,
+11. Qdrant upsert,
+12. index-lifecycle recording.
 
-Image-only PDFs are not silently accepted. OCR is outside the initial extraction path.
+Only `APPROVED` documents are eligible for vector indexing.
 
-A reusable production-style ingestion pipeline is planned as a later phase.
+Registry index states include:
+
+- `NOT_INDEXED`
+- `INDEXING`
+- `INDEXED`
+- `FAILED`
+
+Identical files already successfully indexed are not indexed again.
+
+Files registered as `FAILED` or `NOT_INDEXED` can be retried without creating a second document record.
+
+Each indexed chunk carries its source document's SHA-256 checksum so a vector point can be traced back to the exact source-file version.
+
+Ingestion is currently exposed through the local administrative CLI:
+
+`python -m scripts.ingest_document`
+
+An administrative HTTP upload endpoint is intentionally deferred until authentication, authorization, upload limits, malware/file-security controls, and audit logging are implemented.
 
 ## Document Governance
 
