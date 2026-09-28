@@ -83,36 +83,24 @@ class GoldenQuestion(BaseModel):
 
     notes: str | None = None
 
-    @model_validator(
-        mode="after"
-    )
+    @model_validator(mode="after")
     def validate_expected_behavior(
         self,
     ) -> "GoldenQuestion":
         if (
-            self.category
-            == "NO_EVIDENCE"
-            and self.expected_behavior
-            != "ABSTAIN"
+            self.category == "NO_EVIDENCE"
+            and self.expected_behavior != "ABSTAIN"
         ):
             raise ValueError(
-                (
-                    "NO_EVIDENCE questions must "
-                    "expect ABSTAIN."
-                )
+                "NO_EVIDENCE questions must expect ABSTAIN."
             )
 
         if (
-            self.expected_behavior
-            == "ABSTAIN"
-            and self.reference_answer
-            is not None
+            self.expected_behavior == "ABSTAIN"
+            and self.reference_answer is not None
         ):
             raise ValueError(
-                (
-                    "ABSTAIN questions cannot "
-                    "have a reference answer."
-                )
+                "ABSTAIN questions cannot have a reference answer."
             )
 
         return self
@@ -149,45 +137,31 @@ class EvaluationDataset(BaseModel):
         min_length=1,
     )
 
-    @model_validator(
-        mode="after"
-    )
+    @model_validator(mode="after")
     def validate_dataset(
         self,
     ) -> "EvaluationDataset":
         question_ids = [
             question.question_id
-            for question
-            in self.questions
+            for question in self.questions
         ]
 
-        if (
-            len(question_ids)
-            != len(set(question_ids))
+        if len(question_ids) != len(
+            set(question_ids)
         ):
             raise ValueError(
-                (
-                    "Evaluation question IDs "
-                    "must be unique."
-                )
+                "Evaluation question IDs must be unique."
             )
 
         mismatched = [
             question.question_id
-            for question
-            in self.questions
-            if (
-                question.split
-                != self.split
-            )
+            for question in self.questions
+            if question.split != self.split
         ]
 
         if mismatched:
             raise ValueError(
-                (
-                    "Every question split must "
-                    "match the dataset split."
-                )
+                "Every question split must match the dataset split."
             )
 
         return self
@@ -211,22 +185,13 @@ def validate_final_dataset_ready(
             "Final dataset is not frozen."
         )
 
-    if (
-        dataset.corpus_version
-        == "TO_BE_FROZEN"
-    ):
+    if dataset.corpus_version == "TO_BE_FROZEN":
         problems.append(
-            (
-                "Corpus version has not "
-                "been frozen."
-            )
+            "Corpus version has not been frozen."
         )
 
     for question in dataset.questions:
-        if (
-            "TO_BE_COMPLETED"
-            in question.question
-        ):
+        if "TO_BE_COMPLETED" in question.question:
             problems.append(
                 (
                     f"{question.question_id} "
@@ -235,10 +200,8 @@ def validate_final_dataset_ready(
             )
 
         if (
-            question.expected_behavior
-            == "ANSWER"
-            and question.reference_answer
-            is None
+            question.expected_behavior == "ANSWER"
+            and question.reference_answer is None
         ):
             problems.append(
                 (
@@ -248,8 +211,7 @@ def validate_final_dataset_ready(
             )
 
         if (
-            question.expected_behavior
-            == "ANSWER"
+            question.expected_behavior == "ANSWER"
             and not (
                 question.expected_document_ids
                 or question.expected_chunk_ids
@@ -294,7 +256,15 @@ class EvaluationResultRecord(BaseModel):
         default_factory=list,
     )
 
+    citation_document_ids: list[str] = Field(
+        default_factory=list,
+    )
+
     retrieved_chunk_ids: list[str] = Field(
+        default_factory=list,
+    )
+
+    retrieved_document_ids: list[str] = Field(
         default_factory=list,
     )
 
@@ -354,23 +324,241 @@ class EvaluationRunArtifact(BaseModel):
         min_length=1,
     )
 
-    @model_validator(
-        mode="after"
-    )
+    @model_validator(mode="after")
     def validate_result_systems(
         self,
     ) -> "EvaluationRunArtifact":
         if any(
-            result.system
-            != self.system
-            for result
-            in self.results
+            result.system != self.system
+            for result in self.results
         ):
             raise ValueError(
-                (
-                    "Every result record must use "
-                    "the artifact system."
-                )
+                "Every result record must use the artifact system."
             )
 
         return self
+
+
+class LatencySummary(BaseModel):
+    """
+    Latency statistics for one evaluated system.
+    """
+
+    count: int = Field(
+        ge=0,
+    )
+
+    mean_ms: float | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    median_ms: float | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    p95_ms: float | None = Field(
+        default=None,
+        ge=0,
+    )
+
+
+class DeterministicMetricSummary(BaseModel):
+    """
+    Deterministic metrics calculated from one evaluation run.
+    """
+
+    total_questions: int = Field(
+        ge=0,
+    )
+
+    behavior_match_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    error_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    abstention_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    expected_document_retrieval_hit_rate: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    expected_chunk_retrieval_hit_rate: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    citation_document_precision: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    citation_document_recall: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    citation_chunk_precision: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    citation_chunk_recall: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    ontology_relationship_recall: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    ontology_exact_match_rate: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    retry_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    retrieval_relaxation_rate: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    latency: LatencySummary
+
+
+class QuestionComparison(BaseModel):
+    """
+    Side-by-side deterministic result for one question.
+    """
+
+    question_id: str = Field(
+        min_length=1,
+    )
+
+    category: EvaluationCategory
+
+    expected_behavior: ExpectedBehavior
+
+    baseline_status: EvaluationSystemStatus
+
+    medonto_status: EvaluationSystemStatus
+
+    baseline_behavior_match: bool
+
+    medonto_behavior_match: bool
+
+    baseline_retrieved_expected_document: (
+        bool | None
+    ) = None
+
+    medonto_retrieved_expected_document: (
+        bool | None
+    ) = None
+
+    baseline_retrieved_expected_chunk: (
+        bool | None
+    ) = None
+
+    medonto_retrieved_expected_chunk: (
+        bool | None
+    ) = None
+
+    baseline_expected_ontology_relationships_found: (
+        bool | None
+    ) = None
+
+    medonto_expected_ontology_relationships_found: (
+        bool | None
+    ) = None
+
+    baseline_latency_ms: float = Field(
+        ge=0,
+    )
+
+    medonto_latency_ms: float = Field(
+        ge=0,
+    )
+
+
+class EvaluationComparisonArtifact(BaseModel):
+    """
+    Deterministic comparison of one baseline and one MedOnto run.
+    """
+
+    created_at: datetime
+
+    dataset_name: str = Field(
+        min_length=1,
+    )
+
+    dataset_version: str = Field(
+        min_length=1,
+    )
+
+    corpus_version: str = Field(
+        min_length=1,
+    )
+
+    baseline_run_id: str = Field(
+        min_length=1,
+    )
+
+    medonto_run_id: str = Field(
+        min_length=1,
+    )
+
+    baseline_metrics: DeterministicMetricSummary
+
+    medonto_metrics: DeterministicMetricSummary
+
+    questions: list[
+        QuestionComparison
+    ] = Field(
+        min_length=1,
+    )

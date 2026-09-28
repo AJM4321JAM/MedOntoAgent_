@@ -55,7 +55,15 @@ class BaselineQueryResponse(BaseModel):
         CitationReference
     ]
 
+    citation_document_ids: list[str] = Field(
+        default_factory=list,
+    )
+
     retrieved_chunk_ids: list[str]
+
+    retrieved_document_ids: list[str] = Field(
+        default_factory=list,
+    )
 
     status: Literal[
         "ANSWERED",

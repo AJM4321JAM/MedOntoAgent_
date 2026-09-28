@@ -134,9 +134,17 @@ def run_baseline_dataset(
                     citation_chunk_ids=(
                         citation_chunk_ids
                     ),
+                    citation_document_ids=(
+                        response
+                        .citation_document_ids
+                    ),
                     retrieved_chunk_ids=(
                         response
                         .retrieved_chunk_ids
+                    ),
+                    retrieved_document_ids=(
+                        response
+                        .retrieved_document_ids
                     ),
                     ontology_constraints=[],
                     used_ontology_filter=None,
@@ -177,7 +185,9 @@ def run_baseline_dataset(
                     behavior_match=False,
                     answer=None,
                     citation_chunk_ids=[],
+                    citation_document_ids=[],
                     retrieved_chunk_ids=[],
+                    retrieved_document_ids=[],
                     ontology_constraints=[],
                     used_ontology_filter=None,
                     retrieval_relaxed=None,

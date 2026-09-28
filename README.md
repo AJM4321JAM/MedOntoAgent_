@@ -15,7 +15,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Repeatable baseline and MedOntoAgent evaluation runners with standardized versioned result artifacts established.
+Current phase: Deterministic Baseline-vs-MedOnto comparison metrics, evidence-alignment metrics, ontology metrics, and latency analysis established.
 
 The current implementation includes:
 
@@ -1041,26 +1041,54 @@ The final benchmark is not considered ready merely because a JSON dataset exists
 
 It must pass the final-dataset readiness checks first.
 
+## Deterministic Evaluation Metrics
+
+MedOntoAgent first evaluates baseline RAG and MedOntoAgent using project-controlled deterministic metrics before applying external semantic-evaluation frameworks.
+
+The comparison layer measures:
+
+- expected answer/abstention behavior,
+- operational error rate,
+- abstention rate,
+- retrieval of expected source documents,
+- retrieval of expected evidence chunks,
+- citation alignment with annotated evidence,
+- ontology relationship recall,
+- ontology relationship exact match,
+- retries,
+- ontology-filter relaxation,
+- end-to-end latency.
+
+Evaluation artifacts now retain:
+
+- citation chunk IDs,
+- citation document IDs,
+- retrieved chunk IDs,
+- retrieved document IDs.
+
+The comparator verifies that paired baseline and MedOntoAgent runs use the same:
+
+- dataset name and version,
+- corpus version,
+- configured reference model,
+- embedding model,
+- embedding dimensions,
+- retrieval top-k.
+
+Metrics without sufficient golden annotations are reported as not applicable rather than being treated as failures.
+
+The deterministic citation metrics measure agreement with annotated evidence. They do not replace semantic citation-support validation.
+
+Development evaluation currently uses the configured OpenRouter free route. Temporary provider rate limits are preserved as `ERROR` outcomes rather than hidden.
+
 ## Next Phase
 
-Phase 22 will implement the first deterministic comparison layer.
+Phase 23 will add semantic evaluation using Ragas while preserving the deterministic comparison layer separately.
 
-It will compare baseline and MedOntoAgent evaluation artifacts and calculate project-controlled metrics including:
-
-- answer / abstention behavior,
-- retrieval hit rates against expected evidence,
-- citation accuracy against expected evidence,
-- ontology-constraint compliance,
-- retry rates,
-- error rates,
-- latency summaries.
-
-Ragas will be added only after these deterministic metrics are working.
-
-Later semantic metrics are expected to include:
+Planned semantic metrics include:
 
 - Faithfulness,
 - Context Precision,
 - Answer Relevance.
 
-The internal MedOntoAgent evaluation artifact format remains independent of the Ragas API format so future metric-library changes do not redefine the project's core experimental records.
+Ontology-specific metrics remain project-controlled and are not delegated to Ragas.

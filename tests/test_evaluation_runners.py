@@ -121,9 +121,16 @@ def test_baseline_runner_records_standard_result() -> None:
                 )
             )
         ],
+        citation_document_ids=[
+            "DOC-TEST"
+        ],
         retrieved_chunk_ids=[
             "DOC-TEST-CHUNK-0000",
             "DOC-OTHER-CHUNK-0000",
+        ],
+        retrieved_document_ids=[
+            "DOC-TEST",
+            "DOC-OTHER",
         ],
         status="ANSWERED",
     )
@@ -171,10 +178,25 @@ def test_baseline_runner_records_standard_result() -> None:
     )
 
     assert (
+        result.citation_document_ids
+        == [
+            "DOC-TEST"
+        ]
+    )
+
+    assert (
         result.retrieved_chunk_ids
         == [
             "DOC-TEST-CHUNK-0000",
             "DOC-OTHER-CHUNK-0000",
+        ]
+    )
+
+    assert (
+        result.retrieved_document_ids
+        == [
+            "DOC-TEST",
+            "DOC-OTHER",
         ]
     )
 
@@ -230,7 +252,10 @@ def test_medonto_runner_records_graph_metadata() -> None:
                 SimpleNamespace(
                     chunk_id=(
                         "DOC-TEST-CHUNK-0000"
-                    )
+                    ),
+                    document_id=(
+                        "DOC-TEST"
+                    ),
                 )
             ]
         )
@@ -287,9 +312,23 @@ def test_medonto_runner_records_graph_metadata() -> None:
     )
 
     assert (
+        result.citation_document_ids
+        == [
+            "DOC-TEST"
+        ]
+    )
+
+    assert (
         result.retrieved_chunk_ids
         == [
             "DOC-TEST-CHUNK-0000"
+        ]
+    )
+
+    assert (
+        result.retrieved_document_ids
+        == [
+            "DOC-TEST"
         ]
     )
 
@@ -383,8 +422,14 @@ def test_run_artifact_can_be_persisted(
                 )
             )
         ],
+        citation_document_ids=[
+            "DOC-TEST"
+        ],
         retrieved_chunk_ids=[
             "DOC-TEST-CHUNK-0000"
+        ],
+        retrieved_document_ids=[
+            "DOC-TEST"
         ],
         status="ANSWERED",
     )
@@ -433,6 +478,18 @@ def test_run_artifact_can_be_persisted(
     assert len(
         data["results"]
     ) == 1
+
+    assert (
+        data["results"][0]
+        ["citation_document_ids"]
+        == ["DOC-TEST"]
+    )
+
+    assert (
+        data["results"][0]
+        ["retrieved_document_ids"]
+        == ["DOC-TEST"]
+    )
 
     assert (
         "openrouter_api_key"

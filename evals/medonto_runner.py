@@ -37,11 +37,8 @@ def _constraint_strings(
     constraint_set,
 ) -> list[str]:
     """
-    Convert explicit ontology constraints into stable
+    Convert application-owned ontology constraints into stable
     human-readable relationship strings.
-
-    The helper deliberately reads application-owned constraint
-    objects rather than model-generated prose.
     """
     if constraint_set is None:
         return []
@@ -57,9 +54,7 @@ def _constraint_strings(
             constraint_set,
             (list, tuple),
         ):
-            constraints = (
-                constraint_set
-            )
+            constraints = constraint_set
         else:
             return []
 
@@ -94,16 +89,12 @@ def _constraint_strings(
                 f"{predicate} "
                 f"{object_name}"
             )
-
         else:
             relationship = str(
                 constraint
             )
 
-        if (
-            relationship
-            not in results
-        ):
+        if relationship not in results:
             results.append(
                 relationship
             )
@@ -113,11 +104,16 @@ def _constraint_strings(
 
 def _citation_chunk_ids(
     draft_output,
+    *,
+    verified: bool,
 ) -> list[str]:
     """
-    Extract unique citation IDs from MedOnto draft claims.
+    Extract unique final citation IDs from verified claims.
     """
-    if draft_output is None:
+    if (
+        draft_output is None
+        or not verified
+    ):
         return []
 
     results: list[str] = []
@@ -144,20 +140,85 @@ def _retrieved_chunk_ids(
     retrieval_result,
 ) -> list[str]:
     """
-    Extract retrieval IDs from the graph retrieval result.
+    Extract retrieved chunk IDs.
     """
     if retrieval_result is None:
         return []
 
     return [
         chunk.chunk_id
+        for chunk in getattr(
+            retrieval_result,
+            "retrieved_chunks",
+            [],
+        )
+    ]
+
+
+def _retrieved_document_ids(
+    retrieval_result,
+) -> list[str]:
+    """
+    Extract unique source document IDs directly from retrieval.
+    """
+    if retrieval_result is None:
+        return []
+
+    return list(
+        dict.fromkeys(
+            chunk.document_id
+            for chunk
+            in getattr(
+                retrieval_result,
+                "retrieved_chunks",
+                [],
+            )
+        )
+    )
+
+
+def _citation_document_ids(
+    *,
+    draft_output,
+    retrieval_result,
+    verified: bool,
+) -> list[str]:
+    """
+    Resolve verified citation chunk IDs to actual document IDs.
+    """
+    if (
+        draft_output is None
+        or retrieval_result is None
+        or not verified
+    ):
+        return []
+
+    chunks_by_id = {
+        chunk.chunk_id: chunk
         for chunk
         in getattr(
             retrieval_result,
             "retrieved_chunks",
             [],
         )
-    ]
+    }
+
+    cited_chunk_ids = (
+        _citation_chunk_ids(
+            draft_output,
+            verified=True,
+        )
+    )
+
+    return list(
+        dict.fromkeys(
+            chunks_by_id[chunk_id]
+            .document_id
+            for chunk_id
+            in cited_chunk_ids
+            if chunk_id in chunks_by_id
+        )
+    )
 
 
 def run_medonto_dataset(
@@ -240,8 +301,17 @@ def run_medonto_dataset(
                     orchestration_status
                 )
 
+            verified = (
+                system_status
+                == "VERIFIED"
+            )
+
             draft_output = state.get(
                 "draft_output"
+            )
+
+            retrieval_result = state.get(
+                "retrieval_result"
             )
 
             answer: str | None = None
@@ -309,14 +379,29 @@ def run_medonto_dataset(
                     answer=answer,
                     citation_chunk_ids=(
                         _citation_chunk_ids(
-                            draft_output
+                            draft_output,
+                            verified=verified,
+                        )
+                    ),
+                    citation_document_ids=(
+                        _citation_document_ids(
+                            draft_output=(
+                                draft_output
+                            ),
+                            retrieval_result=(
+                                retrieval_result
+                            ),
+                            verified=verified,
                         )
                     ),
                     retrieved_chunk_ids=(
                         _retrieved_chunk_ids(
-                            state.get(
-                                "retrieval_result"
-                            )
+                            retrieval_result
+                        )
+                    ),
+                    retrieved_document_ids=(
+                        _retrieved_document_ids(
+                            retrieval_result
                         )
                     ),
                     ontology_constraints=(
@@ -378,7 +463,9 @@ def run_medonto_dataset(
                     behavior_match=False,
                     answer=None,
                     citation_chunk_ids=[],
+                    citation_document_ids=[],
                     retrieved_chunk_ids=[],
+                    retrieved_document_ids=[],
                     ontology_constraints=[],
                     used_ontology_filter=None,
                     retrieval_relaxed=None,
