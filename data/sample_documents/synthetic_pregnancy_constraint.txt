@@ -1,0 +1,7 @@
+SYNTHETIC PREGNANCY CONSTRAINT DOCUMENT
+
+This document is synthetic and exists only for software testing.
+
+Example Antihypertensive Class is contraindicated in Pregnancy in this synthetic test scenario.
+
+This statement exists only to test ontology-constrained retrieval and must not be interpreted as real clinical guidance.

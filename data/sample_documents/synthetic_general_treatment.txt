@@ -1,0 +1,7 @@
+SYNTHETIC GENERAL TREATMENT DOCUMENT
+
+This document is synthetic and exists only for software testing.
+
+Example Antihypertensive Class is discussed as a general treatment concept in this synthetic test corpus.
+
+This text must not be interpreted as clinical guidance.

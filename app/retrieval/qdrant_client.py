@@ -5,8 +5,13 @@ from uuid import NAMESPACE_URL, uuid5
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
-from app.config.settings import Settings, get_settings
-from app.models.documents import DocumentChunk
+from app.config.settings import (
+    Settings,
+    get_settings,
+)
+from app.models.documents import (
+    DocumentChunk,
+)
 
 
 class QdrantConfigurationError(RuntimeError):
@@ -29,6 +34,7 @@ PAYLOAD_INDEX_FIELDS: tuple[str, ...] = (
     "document_type",
     "source_authority",
     "version",
+    "ontology_concepts",
 )
 
 
@@ -68,9 +74,8 @@ def ensure_collection(
     """
     Create the collection if absent.
 
-    If the collection already exists, validate that its
-    vector dimensions and distance metric still match the
-    application configuration.
+    Existing collections are validated and receive any
+    missing payload indexes.
 
     Existing collections are never deleted automatically.
     """
@@ -138,7 +143,7 @@ def _validate_collection(
     expected_dimensions: int,
 ) -> None:
     """
-    Validate the existing collection vector configuration.
+    Validate existing collection vector configuration.
     """
     try:
         info = client.get_collection(
@@ -165,28 +170,20 @@ def _validate_collection(
             )
         )
 
-    actual_dimensions = (
-        vector_config.size
-    )
-
-    actual_distance = (
-        vector_config.distance
-    )
-
     if (
-        actual_dimensions
+        vector_config.size
         != expected_dimensions
     ):
         raise QdrantStorageError(
             (
                 "Qdrant collection dimension mismatch. "
                 f"Expected {expected_dimensions}, "
-                f"found {actual_dimensions}."
+                f"found {vector_config.size}."
             )
         )
 
     if (
-        actual_distance
+        vector_config.distance
         != models.Distance.COSINE
     ):
         raise QdrantStorageError(
@@ -203,9 +200,9 @@ def _ensure_payload_indexes(
     collection_name: str,
 ) -> None:
     """
-    Create keyword indexes for fields used later in filtering.
+    Add any missing keyword indexes.
 
-    Existing indexes are left unchanged.
+    Existing indexes are left untouched.
     """
     try:
         info = client.get_collection(
@@ -229,9 +226,7 @@ def _ensure_payload_indexes(
                 continue
 
             client.create_payload_index(
-                collection_name=(
-                    collection_name
-                ),
+                collection_name=collection_name,
                 field_name=field_name,
                 field_schema=(
                     models.PayloadSchemaType.KEYWORD
@@ -249,8 +244,7 @@ def chunk_point_id(
     chunk_id: str,
 ) -> str:
     """
-    Produce a deterministic UUID from a human-readable
-    MedOntoAgent chunk ID.
+    Generate deterministic Qdrant UUID.
     """
     if not chunk_id.strip():
         raise ValueError(
@@ -269,10 +263,10 @@ def chunk_to_payload(
     chunk: DocumentChunk,
 ) -> dict[str, Any]:
     """
-    Convert DocumentChunk into JSON-compatible Qdrant payload.
+    Convert a chunk into JSON-compatible Qdrant payload.
 
-    model_dump(mode='json') safely converts Pydantic enums,
-    dates, URLs, and other serializable metadata.
+    OntologyTaggedChunk is a DocumentChunk subclass, so its
+    ontology fields are automatically included by model_dump().
     """
     payload = chunk.model_dump(
         mode="json"
@@ -321,9 +315,6 @@ def upsert_chunks(
 ) -> int:
     """
     Store chunk vectors and metadata in Qdrant.
-
-    Chunk IDs generate deterministic Qdrant UUIDs, so
-    re-indexing the same chunk updates the same point.
     """
     settings = settings or get_settings()
 
@@ -407,8 +398,7 @@ def retrieve_point_by_chunk_id(
     client: QdrantClient | None = None,
 ):
     """
-    Retrieve one stored Qdrant point using its
-    human-readable chunk_id payload field.
+    Retrieve a point by human-readable chunk_id.
     """
     settings = settings or get_settings()
 

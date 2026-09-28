@@ -41,7 +41,11 @@ def create_test_settings(
     )
 
 
-def create_test_chunk() -> MagicMock:
+def create_test_chunk(
+    *,
+    ontology_concepts: list[str] | None = None,
+    ontology_labels: list[str] | None = None,
+) -> MagicMock:
     """
     Fake DocumentChunk-like object.
 
@@ -83,6 +87,14 @@ def create_test_chunk() -> MagicMock:
             "for vector-storage testing."
         ),
         "word_count": 8,
+        "ontology_concepts": (
+            ontology_concepts
+            or []
+        ),
+        "ontology_labels": (
+            ontology_labels
+            or []
+        ),
     }
 
     return chunk
@@ -159,6 +171,57 @@ def test_chunk_to_payload_preserves_metadata() -> None:
     assert (
         payload["clinical_domain"]
         == "Software Testing"
+    )
+
+
+def test_chunk_payload_contains_ontology_metadata() -> None:
+    chunk = create_test_chunk(
+        ontology_concepts=[
+            "ExampleAntihypertensiveClass",
+            "Pregnancy",
+        ],
+        ontology_labels=[
+            "Example Antihypertensive Class",
+            "Pregnancy",
+        ],
+    )
+
+    payload = chunk_to_payload(
+        chunk
+    )
+
+    assert (
+        payload["ontology_concepts"]
+        == [
+            "ExampleAntihypertensiveClass",
+            "Pregnancy",
+        ]
+    )
+
+    assert (
+        payload["ontology_labels"]
+        == [
+            "Example Antihypertensive Class",
+            "Pregnancy",
+        ]
+    )
+
+
+def test_untagged_chunk_payload_has_empty_ontology_metadata() -> None:
+    chunk = create_test_chunk()
+
+    payload = chunk_to_payload(
+        chunk
+    )
+
+    assert (
+        payload["ontology_concepts"]
+        == []
+    )
+
+    assert (
+        payload["ontology_labels"]
+        == []
     )
 
 
@@ -305,6 +368,7 @@ def test_existing_collection_is_not_recreated() -> None:
         "document_type": {},
         "source_authority": {},
         "version": {},
+        "ontology_concepts": {},
     }
 
     client.get_collection.return_value = (
@@ -317,6 +381,77 @@ def test_existing_collection_is_not_recreated() -> None:
     )
 
     client.create_collection.assert_not_called()
+
+    client.create_payload_index.assert_not_called()
+
+
+def test_existing_collection_receives_missing_ontology_index() -> None:
+    settings = (
+        create_test_settings(
+            dimensions=4
+        )
+    )
+
+    client = MagicMock()
+
+    client.collection_exists.return_value = (
+        True
+    )
+
+    vector_config = MagicMock()
+
+    vector_config.size = 4
+
+    from qdrant_client.http import models
+
+    vector_config.distance = (
+        models.Distance.COSINE
+    )
+
+    info = MagicMock()
+
+    info.config.params.vectors = (
+        vector_config
+    )
+
+    info.payload_schema = {
+        "chunk_id": {},
+        "document_id": {},
+        "approval_status": {},
+        "clinical_domain": {},
+        "document_type": {},
+        "source_authority": {},
+        "version": {},
+    }
+
+    client.get_collection.return_value = (
+        info
+    )
+
+    ensure_collection(
+        settings=settings,
+        client=client,
+    )
+
+    client.create_collection.assert_not_called()
+
+    calls = (
+        client
+        .create_payload_index
+        .call_args_list
+    )
+
+    created_fields = {
+        call.kwargs[
+            "field_name"
+        ]
+        for call in calls
+    }
+
+    assert (
+        "ontology_concepts"
+        in created_fields
+    )
 
 
 def test_retrieve_point_by_chunk_id_returns_none_when_missing() -> None:
@@ -336,10 +471,3 @@ def test_retrieve_point_by_chunk_id_returns_none_when_missing() -> None:
     )
 
     assert result is None
-
-def test_chunk_id_is_part_of_payload_indexes() -> None:
-    from app.retrieval.qdrant_client import (
-        PAYLOAD_INDEX_FIELDS,
-    )
-
-    assert "chunk_id" in PAYLOAD_INDEX_FIELDS
