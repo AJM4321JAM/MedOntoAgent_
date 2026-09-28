@@ -7,6 +7,12 @@ from app.config.settings import (
 from app.models.medonto import (
     MedOntoRetrievalResult,
 )
+from app.models.ontology import (
+    OntologyContext,
+)
+from app.models.constraints import (
+    OntologyConstraintSet,
+)
 from app.models.retrieval import (
     RetrievedChunk,
     RetrievalResult,
@@ -39,7 +45,7 @@ def _convert_points(
     points,
 ) -> list[RetrievedChunk]:
     """
-    Convert Qdrant scored points into the existing baseline
+    Convert Qdrant scored points into the existing
     RetrievedChunk model.
     """
     results: list[
@@ -52,9 +58,7 @@ def _convert_points(
             or {}
         )
 
-        payload[
-            "score"
-        ] = float(
+        payload["score"] = float(
             point.score
         )
 
@@ -68,7 +72,7 @@ def _convert_points(
 
 
 def _constraint_concept_names(
-    constraint_set,
+    constraint_set: OntologyConstraintSet,
 ) -> list[str]:
     """
     Return only concepts participating in explicit ontology
@@ -119,23 +123,19 @@ def _query_qdrant(
     return response.points
 
 
-def retrieve_medonto(
-    query: str,
+def retrieve_with_ontology_state(
     *,
+    query: str,
+    ontology_context: OntologyContext,
+    constraint_set: OntologyConstraintSet,
     settings: Settings | None = None,
     client: QdrantClient | None = None,
 ) -> MedOntoRetrievalResult:
     """
-    Execute ontology-aware retrieval.
+    Perform ontology-aware retrieval when concept mapping and
+    constraint construction have already happened.
 
-    Flow:
-
-    query
-    -> OntologyContext
-    -> explicit RDF constraints
-    -> ontology-expanded query
-    -> optional strict ontology payload filter
-    -> one bounded relaxation if necessary
+    This is the retrieval entry point used by LangGraph.
     """
     settings = (
         settings
@@ -150,26 +150,6 @@ def retrieve_medonto(
         raise ValueError(
             "MedOnto retrieval query cannot be empty."
         )
-
-    graph = load_ontology()
-
-    ontology_context = (
-        build_ontology_context(
-            normalized_query,
-            graph=graph,
-            settings=settings,
-        )
-    )
-
-    constraint_set = (
-        build_constraints(
-            query=normalized_query,
-            ontology_context=(
-                ontology_context
-            ),
-            graph=graph,
-        )
-    )
 
     retrieval_query = (
         constraint_set
@@ -203,17 +183,15 @@ def retrieve_medonto(
         retrieval_relaxed = False
 
         if used_ontology_filter:
-            strict_filter = (
-                ontology_concept_filter(
-                    filter_concepts
-                )
-            )
-
             points = _query_qdrant(
                 client=qdrant,
                 settings=settings,
                 vector=vector,
-                query_filter=strict_filter,
+                query_filter=(
+                    ontology_concept_filter(
+                        filter_concepts
+                    )
+                ),
             )
 
             if not points:
@@ -281,4 +259,61 @@ def retrieve_medonto(
         retrieval_relaxed=(
             retrieval_relaxed
         ),
+    )
+
+
+def retrieve_medonto(
+    query: str,
+    *,
+    settings: Settings | None = None,
+    client: QdrantClient | None = None,
+) -> MedOntoRetrievalResult:
+    """
+    Convenience wrapper for the complete standalone
+    ontology-aware retrieval path.
+    """
+    settings = (
+        settings
+        or get_settings()
+    )
+
+    normalized_query = (
+        query.strip()
+    )
+
+    if not normalized_query:
+        raise ValueError(
+            "MedOnto retrieval query cannot be empty."
+        )
+
+    graph = load_ontology()
+
+    ontology_context = (
+        build_ontology_context(
+            normalized_query,
+            graph=graph,
+            settings=settings,
+        )
+    )
+
+    constraint_set = (
+        build_constraints(
+            query=normalized_query,
+            ontology_context=(
+                ontology_context
+            ),
+            graph=graph,
+        )
+    )
+
+    return retrieve_with_ontology_state(
+        query=normalized_query,
+        ontology_context=(
+            ontology_context
+        ),
+        constraint_set=(
+            constraint_set
+        ),
+        settings=settings,
+        client=client,
     )
