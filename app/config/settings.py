@@ -1,8 +1,15 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import (
+    Field,
+    SecretStr,
+    model_validator,
+)
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
@@ -20,7 +27,9 @@ class Settings(BaseSettings):
 
     aws_region: str = "ap-south-1"
 
-    qdrant_collection: str = "medontoagent_clinical_documents"
+    qdrant_collection: str = (
+        "medontoagent_clinical_documents"
+    )
 
     qdrant_url: str | None = None
 
@@ -60,10 +69,16 @@ class Settings(BaseSettings):
 
     openrouter_api_key: SecretStr | None = None
 
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_base_url: str = (
+        "https://openrouter.ai/api/v1"
+    )
 
     # Free OpenRouter routing for development.
     openrouter_model: str = "openrouter/free"
+
+    # Offline semantic-evaluation judge.
+    # Kept separately configurable from the application model.
+    ragas_evaluator_model: str = "openrouter/free"
 
     # Prevent accidental very large output requests.
     llm_max_output_tokens: int = Field(
@@ -97,11 +112,18 @@ class Settings(BaseSettings):
     embedding_device: str = "cpu"
 
     @model_validator(mode="after")
-    def validate_chunking_settings(self) -> "Settings":
-        if self.chunk_overlap_words >= self.max_chunk_words:
+    def validate_chunking_settings(
+        self,
+    ) -> "Settings":
+        if (
+            self.chunk_overlap_words
+            >= self.max_chunk_words
+        ):
             raise ValueError(
-                "CHUNK_OVERLAP_WORDS must be smaller than MAX_CHUNK_WORDS."
+                "CHUNK_OVERLAP_WORDS must be "
+                "smaller than MAX_CHUNK_WORDS."
             )
+
         return self
 
     model_config = SettingsConfigDict(

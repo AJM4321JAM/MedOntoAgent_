@@ -15,7 +15,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Deterministic Baseline-vs-MedOnto comparison metrics, evidence-alignment metrics, ontology metrics, and latency analysis established.
+Current phase: Ragas semantic-evaluation infrastructure established alongside the deterministic baseline-versus-MedOnto comparison framework.
 
 The current implementation includes:
 
@@ -46,7 +46,14 @@ The current implementation includes:
 - versioned development and final evaluation datasets,
 - final-dataset freeze controls,
 - standardized baseline and MedOntoAgent evaluation runners,
-- versioned evaluation result artifacts.
+- versioned evaluation result artifacts,
+- exact retrieved-context capture for offline evaluation,
+- deterministic baseline-versus-MedOnto comparison metrics,
+- isolated Ragas 0.4.3 semantic evaluation,
+- Faithfulness evaluation,
+- Context Precision with Reference evaluation,
+- Answer Relevancy evaluation,
+- separate immutable semantic-evaluation artifacts.
 
 ## Architecture
 
@@ -61,11 +68,11 @@ The current core stack includes:
 - Qdrant Cloud
 - OpenRouter
 - Sentence Transformers
+- Ragas
 - pytest
 
 Planned or later-stage components include:
 
-- Ragas
 - OpenTelemetry
 - Docker
 - AWS
@@ -155,7 +162,13 @@ Real API keys and credentials must never be committed to Git.
 
 Development LLM access currently uses the configured OpenRouter model.
 
+Offline semantic evaluation uses the independently configurable `RAGAS_EVALUATOR_MODEL`.
+
+The current zero-cost development default is `openrouter/free`.
+
 Embeddings are generated locally and therefore do not require a paid embedding API.
+
+Ragas is isolated in a separate `.ragas-venv` because its dependency requirements conflict with the OpenAI SDK version used by the main application.
 
 ## Document Ingestion
 
@@ -806,7 +819,10 @@ Each per-question result records:
 - behavior match,
 - generated answer,
 - cited chunk IDs,
+- cited document IDs,
 - retrieved chunk IDs,
+- retrieved document IDs,
+- exact retrieved context text in retrieval order,
 - ontology constraints where applicable,
 - ontology-filter usage where applicable,
 - retrieval relaxation where applicable,
@@ -1003,7 +1019,14 @@ Important implemented test areas include:
 - golden-dataset readiness checks,
 - standardized evaluation runners,
 - safe evaluation error recording,
-- evaluation artifact persistence.
+- evaluation artifact persistence,
+- retrieved-context persistence,
+- Ragas semantic-evaluation eligibility,
+- Ragas context-order preservation,
+- safe Ragas metric-error recording,
+- semantic-evaluation artifact persistence.
+
+At the Phase 23 implementation checkpoint, the complete regression suite contains 183 passing tests.
 
 A phase is not considered complete until the relevant tests and the complete regression suite pass.
 
@@ -1064,7 +1087,8 @@ Evaluation artifacts now retain:
 - citation chunk IDs,
 - citation document IDs,
 - retrieved chunk IDs,
-- retrieved document IDs.
+- retrieved document IDs,
+- exact retrieved contexts in retrieval order.
 
 The comparator verifies that paired baseline and MedOntoAgent runs use the same:
 
@@ -1081,14 +1105,106 @@ The deterministic citation metrics measure agreement with annotated evidence. Th
 
 Development evaluation currently uses the configured OpenRouter free route. Temporary provider rate limits are preserved as `ERROR` outcomes rather than hidden.
 
-## Next Phase
+## Semantic Evaluation With Ragas
 
-Phase 23 will add semantic evaluation using Ragas while preserving the deterministic comparison layer separately.
+Phase 23 adds an independent offline semantic-evaluation layer using Ragas 0.4.3.
 
-Planned semantic metrics include:
+Implemented metrics are:
 
 - Faithfulness,
-- Context Precision,
-- Answer Relevance.
+- Context Precision with Reference,
+- Answer Relevancy.
 
 Ontology-specific metrics remain project-controlled and are not delegated to Ragas.
+
+Semantic evaluation operates on saved system-run artifacts rather than rerunning retrieval.
+
+Each evaluation artifact now retains the exact retrieved context text in retrieval order so the semantic evaluator measures the evidence actually supplied during that system execution.
+
+Only successful answered outputs are semantically scored:
+
+```text
+Baseline   -> ANSWERED
+MedOnto    -> VERIFIED
+```
+
+`ABSTAINED` and `ERROR` outcomes are not assigned semantic-quality scores.
+
+Their behavior remains part of deterministic evaluation.
+
+Ragas produces a separate `RagasEvaluationArtifact` and does not modify the original execution artifact.
+
+The evaluator uses:
+
+```text
+LLM judge:
+OpenRouter
+RAGAS_EVALUATOR_MODEL=openrouter/free
+
+Embedding component:
+sentence-transformers/all-MiniLM-L6-v2
+local CPU
+```
+
+Ragas is installed in a separate environment:
+
+```text
+.ragas-venv
+```
+
+using:
+
+```text
+requirements-ragas.txt
+```
+
+This separation is necessary because Ragas 0.4.3 requires a dependency stack incompatible with the OpenAI SDK version used by the main MedOntoAgent environment.
+
+The current Ragas environment includes:
+
+```text
+ragas==0.4.3
+openai==2.8.1
+sentence-transformers==6.1.0
+pydantic-settings==2.15.0
+langchain-community==0.3.31
+```
+
+A real Phase 23 smoke test successfully initialized the semantic-evaluation stack and local embedding model.
+
+The live OpenRouter free evaluator then returned HTTP 429 because the available free daily request quota had been exhausted.
+
+The evaluator correctly persisted safe metric failures and reported zero scored records rather than fabricating semantic scores.
+
+Therefore the smoke-run result is an operational provider observation, not evidence about baseline or MedOntoAgent quality.
+
+Formal semantic metric values remain pending a successful evaluator run.
+
+## Evaluation Layers
+
+The evaluation design now separates:
+
+```text
+SYSTEM EXECUTION
+      |
+      v
+EvaluationRunArtifact
+      |
+      +---------------------------+
+      |                           |
+      v                           v
+Deterministic comparison     Ragas semantic evaluation
+      |                           |
+      v                           v
+behavior / retrieval /       faithfulness /
+citations / ontology /       context precision /
+retries / latency            answer relevancy
+```
+
+The two layers are complementary.
+
+No automatic composite score is produced.
+
+## Next Phase
+
+Phase 24 will focus on security hardening and security controls while preserving the evaluation framework established in Phases 20 through 23.

@@ -146,6 +146,10 @@ def run_baseline_dataset(
                         response
                         .retrieved_document_ids
                     ),
+                    retrieved_contexts=(
+                        response
+                        .retrieved_contexts
+                    ),
                     ontology_constraints=[],
                     used_ontology_filter=None,
                     retrieval_relaxed=None,
@@ -188,6 +192,7 @@ def run_baseline_dataset(
                     citation_document_ids=[],
                     retrieved_chunk_ids=[],
                     retrieved_document_ids=[],
+                    retrieved_contexts=[],
                     ontology_constraints=[],
                     used_ontology_filter=None,
                     retrieval_relaxed=None,

@@ -140,7 +140,7 @@ def _retrieved_chunk_ids(
     retrieval_result,
 ) -> list[str]:
     """
-    Extract retrieved chunk IDs.
+    Extract retrieved chunk IDs in retrieval order.
     """
     if retrieval_result is None:
         return []
@@ -175,6 +175,25 @@ def _retrieved_document_ids(
             )
         )
     )
+
+
+def _retrieved_contexts(
+    retrieval_result,
+) -> list[str]:
+    """
+    Preserve exact retrieved context text in retrieval order.
+    """
+    if retrieval_result is None:
+        return []
+
+    return [
+        chunk.text
+        for chunk in getattr(
+            retrieval_result,
+            "retrieved_chunks",
+            [],
+        )
+    ]
 
 
 def _citation_document_ids(
@@ -404,6 +423,11 @@ def run_medonto_dataset(
                             retrieval_result
                         )
                     ),
+                    retrieved_contexts=(
+                        _retrieved_contexts(
+                            retrieval_result
+                        )
+                    ),
                     ontology_constraints=(
                         _constraint_strings(
                             state.get(
@@ -466,6 +490,7 @@ def run_medonto_dataset(
                     citation_document_ids=[],
                     retrieved_chunk_ids=[],
                     retrieved_document_ids=[],
+                    retrieved_contexts=[],
                     ontology_constraints=[],
                     used_ontology_filter=None,
                     retrieval_relaxed=None,

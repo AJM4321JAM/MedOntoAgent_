@@ -2,9 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.constraints import (
-    ConstraintType,
-)
+from app.models.constraints import ConstraintType
 
 
 class CitationReference(BaseModel):
@@ -27,9 +25,7 @@ class BaselineLLMOutput(BaseModel):
         min_length=1,
     )
 
-    citations: list[
-        CitationReference
-    ]
+    citations: list[CitationReference]
 
     status: Literal[
         "ANSWERED",
@@ -39,8 +35,12 @@ class BaselineLLMOutput(BaseModel):
 
 class BaselineQueryResponse(BaseModel):
     """
-    Public API response returned by the conventional
-    baseline RAG system.
+    Internal result returned by the conventional baseline
+    RAG system.
+
+    retrieved_contexts is available to evaluation code but is
+    deliberately excluded from normal Pydantic serialization so
+    the baseline API does not expose retrieved corpus text.
     """
 
     query: str = Field(
@@ -51,9 +51,7 @@ class BaselineQueryResponse(BaseModel):
         min_length=1,
     )
 
-    citations: list[
-        CitationReference
-    ]
+    citations: list[CitationReference]
 
     citation_document_ids: list[str] = Field(
         default_factory=list,
@@ -63,6 +61,11 @@ class BaselineQueryResponse(BaseModel):
 
     retrieved_document_ids: list[str] = Field(
         default_factory=list,
+    )
+
+    retrieved_contexts: list[str] = Field(
+        default_factory=list,
+        exclude=True,
     )
 
     status: Literal[
@@ -120,9 +123,7 @@ class MedOntoDraftOutput(BaseModel):
         min_length=1,
     )
 
-    claims: list[
-        MedOntoClaim
-    ] = Field(
+    claims: list[MedOntoClaim] = Field(
         default_factory=list,
     )
 
@@ -227,9 +228,7 @@ class MedOntoQueryResponse(BaseModel):
         "ERROR",
     ]
 
-    citations: list[
-        PublicCitation
-    ] = Field(
+    citations: list[PublicCitation] = Field(
         default_factory=list,
     )
 

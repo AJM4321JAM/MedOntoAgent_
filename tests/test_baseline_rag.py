@@ -414,9 +414,33 @@ def test_complete_baseline_orchestration(
         == "Synthetic grounded answer."
     )
 
-    assert result.retrieved_chunk_ids == [
-        "DOC-test-CHUNK-0000"
-    ]
+    assert (
+        result.retrieved_chunk_ids
+        == [
+            "DOC-test-CHUNK-0000"
+        ]
+    )
+
+    assert (
+        result.retrieved_document_ids
+        == [
+            "DOC-test"
+        ]
+    )
+
+    assert (
+        result.retrieved_contexts
+        == [
+            chunk.text
+        ]
+    )
+
+    assert (
+        result.citation_document_ids
+        == [
+            "DOC-test"
+        ]
+    )
 
     assert (
         result.citations[0].chunk_id

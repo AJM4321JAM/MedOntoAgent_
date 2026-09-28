@@ -132,6 +132,10 @@ def test_baseline_runner_records_standard_result() -> None:
             "DOC-TEST",
             "DOC-OTHER",
         ],
+        retrieved_contexts=[
+            "Synthetic retrieved context.",
+            "Second synthetic retrieved context.",
+        ],
         status="ANSWERED",
     )
 
@@ -201,6 +205,14 @@ def test_baseline_runner_records_standard_result() -> None:
     )
 
     assert (
+        result.retrieved_contexts
+        == [
+            "Synthetic retrieved context.",
+            "Second synthetic retrieved context.",
+        ]
+    )
+
+    assert (
         result.used_ontology_filter
         is None
     )
@@ -255,6 +267,9 @@ def test_medonto_runner_records_graph_metadata() -> None:
                     ),
                     document_id=(
                         "DOC-TEST"
+                    ),
+                    text=(
+                        "Synthetic retrieved context."
                     ),
                 )
             ]
@@ -333,6 +348,13 @@ def test_medonto_runner_records_graph_metadata() -> None:
     )
 
     assert (
+        result.retrieved_contexts
+        == [
+            "Synthetic retrieved context."
+        ]
+    )
+
+    assert (
         result.ontology_constraints
         == [
             (
@@ -392,6 +414,11 @@ def test_runner_error_is_safe_and_does_not_store_private_detail() -> None:
     )
 
     assert (
+        result.retrieved_contexts
+        == []
+    )
+
+    assert (
         result.error_message
         == (
             "Execution failed: "
@@ -430,6 +457,9 @@ def test_run_artifact_can_be_persisted(
         ],
         retrieved_document_ids=[
             "DOC-TEST"
+        ],
+        retrieved_contexts=[
+            "Synthetic retrieved context."
         ],
         status="ANSWERED",
     )
@@ -489,6 +519,14 @@ def test_run_artifact_can_be_persisted(
         data["results"][0]
         ["retrieved_document_ids"]
         == ["DOC-TEST"]
+    )
+
+    assert (
+        data["results"][0]
+        ["retrieved_contexts"]
+        == [
+            "Synthetic retrieved context."
+        ]
     )
 
     assert (

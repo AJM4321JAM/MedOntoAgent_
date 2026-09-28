@@ -453,6 +453,26 @@ def run_baseline_rag(
         in retrieval.retrieved_chunks
     ]
 
+    retrieved_document_ids = list(
+        dict.fromkeys(
+            chunk.document_id
+            for chunk
+            in retrieval.retrieved_chunks
+        )
+    )
+
+    retrieved_contexts = [
+        chunk.text
+        for chunk
+        in retrieval.retrieved_chunks
+    ]
+
+    chunks_by_id = {
+        chunk.chunk_id: chunk
+        for chunk
+        in retrieval.retrieved_chunks
+    }
+
     citations = [
         CitationReference(
             chunk_id=(
@@ -463,12 +483,31 @@ def run_baseline_rag(
         in output.citations
     ]
 
+    citation_document_ids = list(
+        dict.fromkeys(
+            chunks_by_id[citation.chunk_id]
+            .document_id
+            for citation
+            in output.citations
+            if citation.chunk_id in chunks_by_id
+        )
+    )
+
     return BaselineQueryResponse(
         query=normalized_query,
         answer=output.answer,
         citations=citations,
+        citation_document_ids=(
+            citation_document_ids
+        ),
         retrieved_chunk_ids=(
             retrieved_chunk_ids
+        ),
+        retrieved_document_ids=(
+            retrieved_document_ids
+        ),
+        retrieved_contexts=(
+            retrieved_contexts
         ),
         status=output.status,
     )

@@ -131,9 +131,7 @@ class EvaluationDataset(BaseModel):
 
     frozen: bool
 
-    questions: list[
-        GoldenQuestion
-    ] = Field(
+    questions: list[GoldenQuestion] = Field(
         min_length=1,
     )
 
@@ -230,6 +228,11 @@ def validate_final_dataset_ready(
 class EvaluationResultRecord(BaseModel):
     """
     One standardized result produced by either evaluation system.
+
+    retrieved_contexts stores the exact ranked evidence text
+    presented to the system during that run. This makes later
+    offline semantic evaluation independent of future changes
+    to the vector database.
     """
 
     question_id: str = Field(
@@ -265,6 +268,10 @@ class EvaluationResultRecord(BaseModel):
     )
 
     retrieved_document_ids: list[str] = Field(
+        default_factory=list,
+    )
+
+    retrieved_contexts: list[str] = Field(
         default_factory=list,
     )
 
@@ -318,9 +325,7 @@ class EvaluationRunArtifact(BaseModel):
         str | int | float | bool | None,
     ]
 
-    results: list[
-        EvaluationResultRecord
-    ] = Field(
+    results: list[EvaluationResultRecord] = Field(
         min_length=1,
     )
 
@@ -557,8 +562,119 @@ class EvaluationComparisonArtifact(BaseModel):
 
     medonto_metrics: DeterministicMetricSummary
 
-    questions: list[
-        QuestionComparison
-    ] = Field(
+    questions: list[QuestionComparison] = Field(
         min_length=1,
     )
+
+
+class RagasQuestionScore(BaseModel):
+    """
+    Semantic Ragas scores for one evaluated question.
+
+    A None value means that the metric was not applicable
+    or could not be scored.
+    """
+
+    question_id: str = Field(
+        min_length=1,
+    )
+
+    system: EvaluationSystem
+
+    faithfulness: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    context_precision: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    answer_relevancy: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    metric_errors: list[str] = Field(
+        default_factory=list,
+    )
+
+
+class RagasMetricSummary(BaseModel):
+    """
+    Aggregate semantic metrics for one system-run artifact.
+    """
+
+    total_records: int = Field(
+        ge=0,
+    )
+
+    scored_records: int = Field(
+        ge=0,
+    )
+
+    faithfulness_mean: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    context_precision_mean: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+    answer_relevancy_mean: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+    )
+
+
+class RagasEvaluationArtifact(BaseModel):
+    """
+    Offline semantic-evaluation artifact produced from one
+    immutable system execution artifact.
+
+    Ragas scores are deliberately kept separate from the original
+    system execution artifact.
+    """
+
+    created_at: datetime
+
+    source_run_id: str = Field(
+        min_length=1,
+    )
+
+    system: EvaluationSystem
+
+    dataset_name: str = Field(
+        min_length=1,
+    )
+
+    dataset_version: str = Field(
+        min_length=1,
+    )
+
+    corpus_version: str = Field(
+        min_length=1,
+    )
+
+    evaluator_model: str = Field(
+        min_length=1,
+    )
+
+    embedding_model: str = Field(
+        min_length=1,
+    )
+
+    scores: list[RagasQuestionScore] = Field(
+        min_length=1,
+    )
+
+    summary: RagasMetricSummary
