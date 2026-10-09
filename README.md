@@ -1300,6 +1300,46 @@ Custom application spans disable automatic exception recording so Python stack t
 
 Dedicated observability regression tests verify the disabled no-op path, metrics safety, span safety, and prohibited telemetry attribute names.
 
+## Containerization and Local Compose
+
+Phase 26 containerizes MedOntoAgent and provides a local Docker Compose deployment.
+
+The application image is built from `python:3.12-slim` and runs as the non-root `medonto` user. Runtime secrets are supplied through the local `.env` file and are not copied into the image.
+
+The Docker deployment includes:
+
+- MedOntoAgent on port `8000`
+- OpenTelemetry Collector on port `4318`
+- OTLP/HTTP telemetry from MedOntoAgent to `http://otel-collector:4318`
+- external access to Qdrant Cloud and OpenRouter
+- application health checking through `/health`
+- `no-new-privileges` security hardening
+- `.dockerignore` protection for secrets, virtual environments, source documents, generated results, and local tooling
+
+The local stack can be started with:
+
+    docker compose up --build
+
+The application can then be checked with:
+
+    Invoke-RestMethod http://127.0.0.1:8000/health
+
+A Phase 26 end-to-end smoke test verified the containerized path:
+
+FastAPI -> MedOntoAgent -> local embedding -> Qdrant Cloud -> OpenRouter -> validation -> VERIFIED response.
+
+The Compose deployment also verified telemetry export from MedOntoAgent to the OpenTelemetry Collector, including MedOntoAgent request and retrieval metrics and trace-to-metric exemplars.
+
+Phase 26 additionally verified that:
+
+- the application container runs as the non-root `medonto` user
+- `.env` is not present inside the application container
+- the expected application result directory remains writable by the non-root process
+- stopping the OpenTelemetry Collector does not stop MedOntoAgent
+- `/health` and `/query` continue to operate when telemetry export is unavailable
+- static Docker and Compose configuration tests pass
+- the full regression suite passes with 219 tests
+
 ## Next Phase
 
-Phase 26 will add containerization and deployment packaging on top of the Phase 25 observability foundation.
+Phase 27 will add AWS deployment foundations on top of the Phase 26 containerized application.

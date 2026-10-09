@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python caches
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Local virtual environments
+.venv
+.ragas-venv
+venv
+env
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Local data not intended for the image
+data/source_documents
+data/processed
+
+# Generated evaluation output
+evals/results/*
+!evals/results/.gitkeep
+
+# Local logs
+*.log
+logs
+
+# Build artifacts
+build
+dist
+*.egg-info
+
+# Local OpenTelemetry binaries
+tools/otelcol
+
+# Docker / temporary artifacts
+docker-compose.override.yml
+*.tmp
