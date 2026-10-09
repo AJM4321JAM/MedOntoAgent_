@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -15,6 +17,11 @@ from app.models.responses import (
     PublicCitation,
     PublicOntologyConstraint,
     RetrievalSummary,
+)
+
+
+logger = logging.getLogger(
+    __name__
 )
 
 
@@ -385,6 +392,11 @@ def query_medontoagent(
         )
 
     except Exception as exc:
+        logger.error(
+            "MedOntoAgent request failed: %s",
+            type(exc).__name__,
+        )
+
         raise HTTPException(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR

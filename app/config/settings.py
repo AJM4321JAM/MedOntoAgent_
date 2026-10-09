@@ -67,6 +67,16 @@ class Settings(BaseSettings):
         "CRITICAL",
     ] = "INFO"
 
+    admin_api_key: SecretStr | None = None
+
+    enable_dev_routes: bool = False
+
+    max_request_bytes: int = Field(
+        default=64 * 1024,
+        ge=1024,
+        le=10 * 1024 * 1024,
+    )
+
     openrouter_api_key: SecretStr | None = None
 
     openrouter_base_url: str = (

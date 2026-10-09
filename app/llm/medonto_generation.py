@@ -46,6 +46,7 @@ def format_medonto_evidence(
         sections.append(
             "\n".join(
                 [
+                    "<UNTRUSTED_RETRIEVED_EVIDENCE>",
                     (
                         f"SOURCE_ID: "
                         f"{chunk.chunk_id}"
@@ -54,10 +55,9 @@ def format_medonto_evidence(
                         f"TITLE: "
                         f"{chunk.title}"
                     ),
-                    (
-                        f"TEXT:"
-                    ),
+                    "TEXT:",
                     chunk.text,
+                    "</UNTRUSTED_RETRIEVED_EVIDENCE>",
                 ]
             )
         )

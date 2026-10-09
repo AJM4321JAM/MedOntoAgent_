@@ -12,9 +12,19 @@ from app.api.routes_query import (
 from app.config.settings import (
     get_settings,
 )
+from app.observability.logging_config import (
+    configure_logging,
+)
+from app.security.request_limits import (
+    RequestSizeLimitMiddleware,
+)
 
 
 settings = get_settings()
+
+configure_logging(
+    level=settings.log_level,
+)
 
 
 app = FastAPI(
@@ -27,13 +37,22 @@ app = FastAPI(
 )
 
 
-app.include_router(
-    llm_test_router
+app.add_middleware(
+    RequestSizeLimitMiddleware,
+    max_bytes=settings.max_request_bytes,
 )
+
+
+if settings.enable_dev_routes:
+    app.include_router(
+        llm_test_router
+    )
+
 
 app.include_router(
     baseline_router
 )
+
 
 app.include_router(
     query_router

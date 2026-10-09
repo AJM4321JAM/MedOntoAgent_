@@ -66,3 +66,44 @@ def test_embedding_dimensions_must_be_positive() -> None:
             _env_file=None,
             embedding_dimensions=0,
         )
+
+def test_security_defaults_are_fail_closed() -> None:
+    settings = Settings(
+        _env_file=None,
+    )
+
+    assert settings.admin_api_key is None
+    assert settings.enable_dev_routes is False
+    assert settings.max_request_bytes == 65536
+
+
+def test_request_limit_cannot_be_too_small() -> None:
+    with pytest.raises(
+        ValueError,
+    ):
+        Settings(
+            _env_file=None,
+            max_request_bytes=512,
+        )
+
+
+def test_admin_api_key_uses_secret_type() -> None:
+    settings = Settings(
+        _env_file=None,
+        admin_api_key=(
+            "this-is-a-long-test-admin-key"
+        ),
+    )
+
+    assert settings.admin_api_key is not None
+
+    assert (
+        settings.admin_api_key
+        .get_secret_value()
+        == "this-is-a-long-test-admin-key"
+    )
+
+    assert (
+        "this-is-a-long-test-admin-key"
+        not in str(settings.admin_api_key)
+    )

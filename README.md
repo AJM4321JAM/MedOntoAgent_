@@ -15,7 +15,7 @@ The system is designed to:
 
 ## Project Status
 
-Current phase: Ragas semantic-evaluation infrastructure established alongside the deterministic baseline-versus-MedOnto comparison framework.
+Current phase: Security hardening for secrets, administrative authorization, request limits, development-route isolation, untrusted retrieval, tool policy, and safe logging established.
 
 The current implementation includes:
 
@@ -1205,6 +1205,32 @@ The two layers are complementary.
 
 No automatic composite score is produced.
 
+
+## Security Model
+
+MedOntoAgent treats user input and retrieved documents as untrusted data.
+
+Retrieved text may provide clinical evidence but cannot:
+
+- change system instructions,
+- reveal prompts or credentials,
+- authorize tools,
+- contact external services,
+- modify application state,
+- override ontology constraints.
+
+Tool authority is restricted to trusted system and application control logic.
+
+Administrative operations use a separate API-key authorization dependency and fail closed when administrative authentication is unavailable.
+
+Development-only endpoints are disabled by default.
+
+HTTP request bodies are size-limited at the ASGI layer.
+
+Application logs avoid raw questions, retrieved clinical text, credentials, authorization headers, and complete provider error messages.
+
+MedOntoAgent does not fall back to ungrounded model answers when retrieval or validation infrastructure fails.
+
 ## Next Phase
 
-Phase 24 will focus on security hardening and security controls while preserving the evaluation framework established in Phases 20 through 23.
+Phase 25 will add OpenTelemetry and production observability while preserving the security and evaluation controls established in Phases 20 through 24.
