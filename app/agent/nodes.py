@@ -7,6 +7,12 @@ from app.config.settings import (
 from app.llm.medonto_generation import (
     generate_medonto_draft,
 )
+from app.observability.metrics import (
+    record_retrieval,
+)
+from app.observability.tracing import (
+    observed_span,
+)
 from app.ontology.concept_mapper import (
     build_ontology_context,
 )
@@ -39,30 +45,33 @@ def initialize_node(
     """
     Initialize bounded workflow-control fields.
     """
-    settings = get_settings()
+    with observed_span(
+        "agent.initialize"
+    ):
+        settings = get_settings()
 
-    max_retries = getattr(
-        settings,
-        "max_agent_retries",
-        DEFAULT_MAX_AGENT_RETRIES,
-    )
+        max_retries = getattr(
+            settings,
+            "max_agent_retries",
+            DEFAULT_MAX_AGENT_RETRIES,
+        )
 
-    return {
-        "retry_count": 0,
-        "max_retries": int(
-            max_retries
-        ),
-        "orchestration_status": (
-            "RUNNING"
-        ),
-        "validation_passed": False,
-        "validation_reason": None,
-        "abstention_reason": None,
-        "generation_abstained": False,
-        "citation_validation": None,
-        "ontology_validation": None,
-        "response_validation": None,
-    }
+        return {
+            "retry_count": 0,
+            "max_retries": int(
+                max_retries
+            ),
+            "orchestration_status": (
+                "RUNNING"
+            ),
+            "validation_passed": False,
+            "validation_reason": None,
+            "abstention_reason": None,
+            "generation_abstained": False,
+            "citation_validation": None,
+            "ontology_validation": None,
+            "response_validation": None,
+        }
 
 
 def concept_mapping_node(
@@ -71,16 +80,24 @@ def concept_mapping_node(
     """
     Build the ontology context.
     """
-    graph = load_ontology()
+    with observed_span(
+        "agent.map_concepts",
+        attributes={
+            "medonto.query.length": len(
+                state["query"]
+            ),
+        },
+    ):
+        graph = load_ontology()
 
-    context = build_ontology_context(
-        state["query"],
-        graph=graph,
-    )
+        context = build_ontology_context(
+            state["query"],
+            graph=graph,
+        )
 
-    return {
-        "ontology_context": context,
-    }
+        return {
+            "ontology_context": context,
+        }
 
 
 def constraint_generation_node(
@@ -89,23 +106,33 @@ def constraint_generation_node(
     """
     Build explicit ontology constraints.
     """
-    graph = load_ontology()
+    with observed_span(
+        "agent.build_constraints"
+    ) as span:
+        graph = load_ontology()
 
-    constraint_set = build_constraints(
-        query=state["query"],
-        ontology_context=(
-            state[
-                "ontology_context"
-            ]
-        ),
-        graph=graph,
-    )
+        constraint_set = build_constraints(
+            query=state["query"],
+            ontology_context=(
+                state[
+                    "ontology_context"
+                ]
+            ),
+            graph=graph,
+        )
 
-    return {
-        "constraint_set": (
-            constraint_set
-        ),
-    }
+        span.set_attribute(
+            "medonto.ontology.constraint_count",
+            len(
+                constraint_set.constraints
+            ),
+        )
+
+        return {
+            "constraint_set": (
+                constraint_set
+            ),
+        }
 
 
 def retrieval_node(
@@ -114,33 +141,63 @@ def retrieval_node(
     """
     Execute ontology-aware retrieval.
     """
-    result = (
-        retrieve_with_ontology_state(
-            query=state["query"],
-            ontology_context=(
-                state[
-                    "ontology_context"
-                ]
+    with observed_span(
+        "agent.retrieve"
+    ) as span:
+        result = (
+            retrieve_with_ontology_state(
+                query=state["query"],
+                ontology_context=(
+                    state[
+                        "ontology_context"
+                    ]
+                ),
+                constraint_set=(
+                    state[
+                        "constraint_set"
+                    ]
+                ),
+            )
+        )
+
+        span.set_attribute(
+            "medonto.retrieval.result_count",
+            result.retrieval.result_count,
+        )
+
+        span.set_attribute(
+            "medonto.retrieval.ontology_filter",
+            result.used_ontology_filter,
+        )
+
+        span.set_attribute(
+            "medonto.retrieval.relaxed",
+            result.retrieval_relaxed,
+        )
+
+        record_retrieval(
+            result_count=(
+                result.retrieval.result_count
             ),
-            constraint_set=(
-                state[
-                    "constraint_set"
-                ]
+            ontology_filter=(
+                result.used_ontology_filter
+            ),
+            relaxed=(
+                result.retrieval_relaxed
             ),
         )
-    )
 
-    return {
-        "retrieval_result": (
-            result.retrieval
-        ),
-        "used_ontology_filter": (
-            result.used_ontology_filter
-        ),
-        "retrieval_relaxed": (
-            result.retrieval_relaxed
-        ),
-    }
+        return {
+            "retrieval_result": (
+                result.retrieval
+            ),
+            "used_ontology_filter": (
+                result.used_ontology_filter
+            ),
+            "retrieval_relaxed": (
+                result.retrieval_relaxed
+            ),
+        }
 
 
 def grounded_generation_node(
@@ -149,32 +206,48 @@ def grounded_generation_node(
     """
     Generate a real grounded structured draft.
     """
-    draft = generate_medonto_draft(
-        query=state["query"],
-        retrieval=(
-            state[
-                "retrieval_result"
-            ]
-        ),
-        constraint_set=(
-            state[
-                "constraint_set"
-            ]
-        ),
-        validation_feedback=(
-            state.get(
-                "validation_reason"
-            )
-        ),
-    )
+    with observed_span(
+        "agent.generate",
+        attributes={
+            "medonto.retry_count": (
+                state.get(
+                    "retry_count",
+                    0,
+                )
+            ),
+        },
+    ) as span:
+        draft = generate_medonto_draft(
+            query=state["query"],
+            retrieval=(
+                state[
+                    "retrieval_result"
+                ]
+            ),
+            constraint_set=(
+                state[
+                    "constraint_set"
+                ]
+            ),
+            validation_feedback=(
+                state.get(
+                    "validation_reason"
+                )
+            ),
+        )
 
-    return {
-        "draft_output": draft,
-        "generation_abstained": (
-            draft.status
-            == "ABSTAINED"
-        ),
-    }
+        span.set_attribute(
+            "medonto.generation.status",
+            draft.status,
+        )
+
+        return {
+            "draft_output": draft,
+            "generation_abstained": (
+                draft.status
+                == "ABSTAINED"
+            ),
+        }
 
 
 def validation_node(
@@ -184,102 +257,133 @@ def validation_node(
     Run independent citation and ontology validation and then
     combine their outputs deterministically.
     """
-    draft = state.get(
-        "draft_output"
-    )
-
-    retrieval = state.get(
-        "retrieval_result"
-    )
-
-    constraint_set = state.get(
-        "constraint_set"
-    )
-
-    if draft is None:
-        return {
-            "validation_passed": False,
-            "validation_reason": (
-                "Structured draft output is missing."
-            ),
-            "response_validation": None,
-        }
-
-    if retrieval is None:
-        return {
-            "validation_passed": False,
-            "validation_reason": (
-                "Retrieval result is missing."
-            ),
-            "response_validation": None,
-        }
-
-    if constraint_set is None:
-        return {
-            "validation_passed": False,
-            "validation_reason": (
-                "Ontology constraint set is missing."
-            ),
-            "response_validation": None,
-        }
-
-    citation_validation = (
-        validate_citations(
-            draft=draft,
-            retrieval=retrieval,
+    with observed_span(
+        "agent.validate"
+    ) as span:
+        draft = state.get(
+            "draft_output"
         )
-    )
 
-    ontology_validation = (
-        validate_ontology_compliance(
-            draft=draft,
-            constraint_set=(
-                constraint_set
+        retrieval = state.get(
+            "retrieval_result"
+        )
+
+        constraint_set = state.get(
+            "constraint_set"
+        )
+
+        if draft is None:
+            span.set_attribute(
+                "medonto.validation.status",
+                "MISSING_DRAFT",
+            )
+
+            return {
+                "validation_passed": False,
+                "validation_reason": (
+                    "Structured draft output is missing."
+                ),
+                "response_validation": None,
+            }
+
+        if retrieval is None:
+            span.set_attribute(
+                "medonto.validation.status",
+                "MISSING_RETRIEVAL",
+            )
+
+            return {
+                "validation_passed": False,
+                "validation_reason": (
+                    "Retrieval result is missing."
+                ),
+                "response_validation": None,
+            }
+
+        if constraint_set is None:
+            span.set_attribute(
+                "medonto.validation.status",
+                "MISSING_CONSTRAINTS",
+            )
+
+            return {
+                "validation_passed": False,
+                "validation_reason": (
+                    "Ontology constraint set is missing."
+                ),
+                "response_validation": None,
+            }
+
+        citation_validation = (
+            validate_citations(
+                draft=draft,
+                retrieval=retrieval,
+            )
+        )
+
+        ontology_validation = (
+            validate_ontology_compliance(
+                draft=draft,
+                constraint_set=(
+                    constraint_set
+                ),
+            )
+        )
+
+        response_validation = (
+            validate_response(
+                citation_validation=(
+                    citation_validation
+                ),
+                ontology_validation=(
+                    ontology_validation
+                ),
+                retry_count=(
+                    state.get(
+                        "retry_count",
+                        0,
+                    )
+                ),
+                max_retries=(
+                    state.get(
+                        "max_retries",
+                        1,
+                    )
+                ),
+            )
+        )
+
+        span.set_attribute(
+            "medonto.validation.status",
+            response_validation.status,
+        )
+
+        span.set_attribute(
+            "medonto.validation.passed",
+            (
+                response_validation.status
+                == "VERIFIED"
             ),
         )
-    )
 
-    response_validation = (
-        validate_response(
-            citation_validation=(
+        return {
+            "citation_validation": (
                 citation_validation
             ),
-            ontology_validation=(
+            "ontology_validation": (
                 ontology_validation
             ),
-            retry_count=(
-                state.get(
-                    "retry_count",
-                    0,
-                )
+            "response_validation": (
+                response_validation
             ),
-            max_retries=(
-                state.get(
-                    "max_retries",
-                    1,
-                )
+            "validation_passed": (
+                response_validation.status
+                == "VERIFIED"
             ),
-        )
-    )
-
-    return {
-        "citation_validation": (
-            citation_validation
-        ),
-        "ontology_validation": (
-            ontology_validation
-        ),
-        "response_validation": (
-            response_validation
-        ),
-        "validation_passed": (
-            response_validation.status
-            == "VERIFIED"
-        ),
-        "validation_reason": (
-            response_validation.feedback
-        ),
-    }
+            "validation_reason": (
+                response_validation.feedback
+            ),
+        }
 
 
 def increment_retry_node(
@@ -291,20 +395,32 @@ def increment_retry_node(
     Old validation objects are cleared because they refer to
     the previous draft.
     """
-    return {
-        "retry_count": (
-            state.get(
-                "retry_count",
-                0,
-            )
-            + 1
-        ),
-        "validation_passed": False,
-        "generation_abstained": False,
-        "citation_validation": None,
-        "ontology_validation": None,
-        "response_validation": None,
-    }
+    next_count = (
+        state.get(
+            "retry_count",
+            0,
+        )
+        + 1
+    )
+
+    with observed_span(
+        "agent.retry",
+        attributes={
+            "medonto.retry_count": (
+                next_count
+            ),
+        },
+    ):
+        return {
+            "retry_count": (
+                next_count
+            ),
+            "validation_passed": False,
+            "generation_abstained": False,
+            "citation_validation": None,
+            "ontology_validation": None,
+            "response_validation": None,
+        }
 
 
 def verified_node(
@@ -313,11 +429,14 @@ def verified_node(
     """
     Terminal successful validation state.
     """
-    return {
-        "orchestration_status": (
-            "VERIFIED"
-        ),
-    }
+    with observed_span(
+        "agent.verified"
+    ):
+        return {
+            "orchestration_status": (
+                "VERIFIED"
+            ),
+        }
 
 
 def abstain_node(

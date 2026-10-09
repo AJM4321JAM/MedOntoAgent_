@@ -39,6 +39,9 @@ from app.retrieval.qdrant_client import (
 from app.retrieval.retriever import (
     RetrievalError,
 )
+from app.observability.tracing import (
+    observed_span,
+)
 
 
 def _convert_points(
@@ -183,20 +186,66 @@ def retrieve_with_ontology_state(
         retrieval_relaxed = False
 
         if used_ontology_filter:
-            points = _query_qdrant(
-                client=qdrant,
-                settings=settings,
-                vector=vector,
-                query_filter=(
-                    ontology_concept_filter(
-                        filter_concepts
-                    )
-                ),
-            )
+            with observed_span(
+                "qdrant.query",
+                attributes={
+                    "medonto.retrieval.top_k": (
+                        settings.retrieval_top_k
+                    ),
+                    "medonto.retrieval.mode": (
+                        "ontology"
+                    ),
+                    "medonto.retrieval.ontology_filter": True,
+                },
+            ):
+                points = _query_qdrant(
+                    client=qdrant,
+                    settings=settings,
+                    vector=vector,
+                    query_filter=(
+                        ontology_concept_filter(
+                            filter_concepts
+                        )
+                    ),
+                )
 
             if not points:
                 retrieval_relaxed = True
 
+                with observed_span(
+                    "qdrant.query",
+                    attributes={
+                        "medonto.retrieval.top_k": (
+                            settings.retrieval_top_k
+                        ),
+                        "medonto.retrieval.mode": (
+                            "ontology_relaxed"
+                        ),
+                        "medonto.retrieval.ontology_filter": False,
+                    },
+                ):
+                    points = _query_qdrant(
+                        client=qdrant,
+                        settings=settings,
+                        vector=vector,
+                        query_filter=(
+                            approved_document_filter()
+                        ),
+                    )
+
+        else:
+            with observed_span(
+                "qdrant.query",
+                attributes={
+                    "medonto.retrieval.top_k": (
+                        settings.retrieval_top_k
+                    ),
+                    "medonto.retrieval.mode": (
+                        "ontology"
+                    ),
+                    "medonto.retrieval.ontology_filter": False,
+                },
+            ):
                 points = _query_qdrant(
                     client=qdrant,
                     settings=settings,
@@ -205,16 +254,6 @@ def retrieve_with_ontology_state(
                         approved_document_filter()
                     ),
                 )
-
-        else:
-            points = _query_qdrant(
-                client=qdrant,
-                settings=settings,
-                vector=vector,
-                query_filter=(
-                    approved_document_filter()
-                ),
-            )
 
     except Exception as exc:
         if isinstance(

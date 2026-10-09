@@ -27,6 +27,9 @@ from app.models.validation import (
     CitationValidationItem,
     CitationValidationResult,
 )
+from app.observability.tracing import (
+    observed_span,
+)
 
 
 class CitationValidationError(
@@ -262,13 +265,25 @@ def validate_citations(
             retrieval=retrieval,
         )
 
-        judgment = _judge_claim(
-            claim_text=(
-                claim.claim_text
-            ),
-            evidence=evidence,
-            settings=settings,
-        )
+        with observed_span(
+            "llm.citation_validation",
+            attributes={
+                "medonto.model": (
+                    settings.openrouter_model
+                ),
+                "medonto.operation": (
+                    "citation_validation"
+                ),
+                "medonto.claim_index": index,
+            },
+        ):
+            judgment = _judge_claim(
+                claim_text=(
+                    claim.claim_text
+                ),
+                evidence=evidence,
+                settings=settings,
+            )
 
         items.append(
             CitationValidationItem(

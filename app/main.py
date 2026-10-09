@@ -15,6 +15,9 @@ from app.config.settings import (
 from app.observability.logging_config import (
     configure_logging,
 )
+from app.observability.tracing import (
+    configure_telemetry,
+)
 from app.security.request_limits import (
     RequestSizeLimitMiddleware,
 )
@@ -40,6 +43,12 @@ app = FastAPI(
 app.add_middleware(
     RequestSizeLimitMiddleware,
     max_bytes=settings.max_request_bytes,
+)
+
+
+configure_telemetry(
+    app=app,
+    settings=settings,
 )
 
 

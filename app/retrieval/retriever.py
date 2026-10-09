@@ -14,6 +14,9 @@ from app.retrieval.filters import (
 from app.retrieval.qdrant_client import (
     create_qdrant_client,
 )
+from app.observability.tracing import (
+    observed_span,
+)
 
 
 class RetrievalError(RuntimeError):
@@ -209,23 +212,34 @@ def retrieve_baseline(
         )
 
     try:
-        response = (
-            qdrant_client
-            .query_points(
-                collection_name=(
-                    settings.qdrant_collection
-                ),
-                query=query_vector,
-                query_filter=(
-                    approved_document_filter()
-                ),
-                limit=(
+        with observed_span(
+            "qdrant.query",
+            attributes={
+                "medonto.retrieval.top_k": (
                     settings.retrieval_top_k
                 ),
-                with_payload=True,
-                with_vectors=False,
+                "medonto.retrieval.mode": (
+                    "baseline"
+                ),
+            },
+        ):
+            response = (
+                qdrant_client
+                .query_points(
+                    collection_name=(
+                        settings.qdrant_collection
+                    ),
+                    query=query_vector,
+                    query_filter=(
+                        approved_document_filter()
+                    ),
+                    limit=(
+                        settings.retrieval_top_k
+                    ),
+                    with_payload=True,
+                    with_vectors=False,
+                )
             )
-        )
 
     except Exception as exc:
         raise RetrievalError(

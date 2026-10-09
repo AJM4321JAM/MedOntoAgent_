@@ -1,4 +1,5 @@
 import logging
+import time
 
 from fastapi import (
     APIRouter,
@@ -17,6 +18,12 @@ from app.models.responses import (
     PublicCitation,
     PublicOntologyConstraint,
     RetrievalSummary,
+)
+from app.observability.metrics import (
+    record_request,
+)
+from app.observability.tracing import (
+    observed_span,
 )
 
 
@@ -377,21 +384,79 @@ def query_medontoagent(
     errors, filesystem paths, credentials, and stack traces are
     not returned to API consumers.
     """
+    start_time = time.perf_counter()
+
     try:
-        state = medonto_graph.invoke(
-            {
-                "query": (
+        with observed_span(
+            "medonto.graph",
+            attributes={
+                "medonto.query.length": len(
                     request.query
                 ),
-            }
-        )
+            },
+        ) as span:
+            state = medonto_graph.invoke(
+                {
+                    "query": (
+                        request.query
+                    ),
+                }
+            )
 
-        return _build_public_response(
+            orchestration_status = (
+                state.get(
+                    "orchestration_status",
+                    "ERROR",
+                )
+            )
+
+            retry_count = int(
+                state.get(
+                    "retry_count",
+                    0,
+                )
+            )
+
+            span.set_attribute(
+                "medonto.response.status",
+                orchestration_status,
+            )
+
+            span.set_attribute(
+                "medonto.retry_count",
+                retry_count,
+            )
+
+        response = _build_public_response(
             query=request.query,
             state=state,
         )
 
+        latency_ms = (
+            time.perf_counter()
+            - start_time
+        ) * 1000
+
+        record_request(
+            status=orchestration_status,
+            latency_ms=latency_ms,
+            retry_count=retry_count,
+        )
+
+        return response
+
     except Exception as exc:
+        latency_ms = (
+            time.perf_counter()
+            - start_time
+        ) * 1000
+
+        record_request(
+            status="ERROR",
+            latency_ms=latency_ms,
+            retry_count=0,
+        )
+
         logger.error(
             "MedOntoAgent request failed: %s",
             type(exc).__name__,

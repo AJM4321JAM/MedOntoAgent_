@@ -4,6 +4,9 @@ from functools import lru_cache
 from sentence_transformers import SentenceTransformer
 
 from app.config.settings import Settings, get_settings
+from app.observability.tracing import (
+    observed_span,
+)
 
 
 class EmbeddingConfigurationError(RuntimeError):
@@ -98,11 +101,23 @@ def embed_text(
     )
 
     try:
-        vector = model.encode(
-            cleaned,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-        )
+        with observed_span(
+            "embedding.generate",
+            attributes={
+                "medonto.embedding.model": (
+                    settings.embedding_model
+                ),
+                "medonto.embedding.batch_size": 1,
+                "medonto.embedding.dimensions": (
+                    settings.embedding_dimensions
+                ),
+            },
+        ):
+            vector = model.encode(
+                cleaned,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+            )
 
     except Exception as exc:
         raise EmbeddingServiceError(
@@ -147,13 +162,27 @@ def embed_texts(
     )
 
     try:
-        vectors = model.encode(
-            cleaned_texts,
-            batch_size=settings.embedding_batch_size,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-        )
+        with observed_span(
+            "embedding.generate",
+            attributes={
+                "medonto.embedding.model": (
+                    settings.embedding_model
+                ),
+                "medonto.embedding.batch_size": (
+                    len(cleaned_texts)
+                ),
+                "medonto.embedding.dimensions": (
+                    settings.embedding_dimensions
+                ),
+            },
+        ):
+            vectors = model.encode(
+                cleaned_texts,
+                batch_size=settings.embedding_batch_size,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
 
     except Exception as exc:
         raise EmbeddingServiceError(

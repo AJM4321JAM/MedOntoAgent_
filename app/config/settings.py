@@ -90,6 +90,25 @@ class Settings(BaseSettings):
     # Kept separately configurable from the application model.
     ragas_evaluator_model: str = "openrouter/free"
 
+    otel_enabled: bool = False
+
+    otel_service_name: str = (
+        "medontoagent"
+    )
+
+    otel_service_version: str = (
+        "0.1.0"
+    )
+
+    otel_exporter_otlp_endpoint: str = (
+        "http://localhost:4318"
+    )
+
+    otel_export_interval_ms: int = Field(
+        default=10000,
+        ge=1000,
+    )
+
     # Prevent accidental very large output requests.
     llm_max_output_tokens: int = Field(
         default=1000,

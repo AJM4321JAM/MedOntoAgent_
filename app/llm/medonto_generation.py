@@ -23,6 +23,9 @@ from app.models.responses import (
 from app.models.retrieval import (
     RetrievalResult,
 )
+from app.observability.tracing import (
+    observed_span,
+)
 
 
 class MedOntoGenerationError(RuntimeError):
@@ -393,45 +396,56 @@ def generate_medonto_draft(
         total_attempts + 1,
     ):
         try:
-            completion = (
-                _call_with_one_retry(
-                    lambda: (
-                        client
-                        .chat
-                        .completions
-                        .create(
-                            model=(
-                                settings
-                                .openrouter_model
-                            ),
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": (
-                                        MEDONTO_GENERATION_SYSTEM_PROMPT
-                                    ),
-                                },
-                                {
-                                    "role": "user",
-                                    "content": (
-                                        user_prompt
-                                    ),
-                                },
-                            ],
-                            max_tokens=(
-                                settings
-                                .llm_max_output_tokens
-                            ),
-                            response_format={
-                                "type": "json_object",
-                            },
-                        )
+            with observed_span(
+                "llm.medonto_generation",
+                attributes={
+                    "medonto.model": (
+                        settings.openrouter_model
                     ),
-                    operation_name=(
-                        "MedOnto grounded generation"
+                    "medonto.operation": (
+                        "generation"
                     ),
+                },
+            ):
+                completion = (
+                    _call_with_one_retry(
+                        lambda: (
+                            client
+                            .chat
+                            .completions
+                            .create(
+                                model=(
+                                    settings
+                                    .openrouter_model
+                                ),
+                                messages=[
+                                    {
+                                        "role": "system",
+                                        "content": (
+                                            MEDONTO_GENERATION_SYSTEM_PROMPT
+                                        ),
+                                    },
+                                    {
+                                        "role": "user",
+                                        "content": (
+                                            user_prompt
+                                        ),
+                                    },
+                                ],
+                                max_tokens=(
+                                    settings
+                                    .llm_max_output_tokens
+                                ),
+                                response_format={
+                                    "type": "json_object",
+                                },
+                            )
+                        ),
+                        operation_name=(
+                            "MedOnto grounded generation"
+                        ),
+                    )
                 )
-            )
 
             if not completion.choices:
                 raise MedOntoGenerationError(

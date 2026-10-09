@@ -28,6 +28,9 @@ from app.models.ontology import (
     MappedOntologyConcept,
     OntologyContext,
 )
+from app.observability.tracing import (
+    observed_span,
+)
 from app.ontology.ontology_loader import (
     load_ontology,
 )
@@ -556,42 +559,53 @@ def extract_candidate_concepts(
         total_attempts + 1,
     ):
         try:
-            completion = _call_with_one_retry(
-                lambda: (
-                    client
-                    .chat
-                    .completions
-                    .create(
-                        model=(
-                            settings.openrouter_model
-                        ),
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": (
-                                    CONCEPT_EXTRACTION_SYSTEM_PROMPT
-                                ),
+            with observed_span(
+                "llm.concept_extraction",
+                attributes={
+                    "medonto.model": (
+                        settings.openrouter_model
+                    ),
+                    "medonto.operation": (
+                        "concept_extraction"
+                    ),
+                },
+            ):
+                completion = _call_with_one_retry(
+                    lambda: (
+                        client
+                        .chat
+                        .completions
+                        .create(
+                            model=(
+                                settings.openrouter_model
+                            ),
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": (
+                                        CONCEPT_EXTRACTION_SYSTEM_PROMPT
+                                    ),
+                                },
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        normalized_query
+                                    ),
+                                },
+                            ],
+                            max_tokens=min(
+                                settings.llm_max_output_tokens,
+                                500,
+                            ),
+                            response_format={
+                                "type": "json_object",
                             },
-                            {
-                                "role": "user",
-                                "content": (
-                                    normalized_query
-                                ),
-                            },
-                        ],
-                        max_tokens=min(
-                            settings.llm_max_output_tokens,
-                            500,
-                        ),
-                        response_format={
-                            "type": "json_object",
-                        },
-                    )
-                ),
-                operation_name=(
-                    "ontology concept extraction"
-                ),
-            )
+                        )
+                    ),
+                    operation_name=(
+                        "ontology concept extraction"
+                    ),
+                )
 
             if not completion.choices:
                 raise ConceptMappingError(

@@ -37,3 +37,5 @@ data/source_documents/*
 # Local evaluation run artifacts
 evals/results/*.json
 !evals/results/.gitkeep
+# Local OpenTelemetry Collector binaries
+tools/otelcol/

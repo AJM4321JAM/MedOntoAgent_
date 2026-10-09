@@ -27,6 +27,9 @@ from app.models.validation import (
     OntologyValidationItem,
     OntologyValidationResult,
 )
+from app.observability.tracing import (
+    observed_span,
+)
 
 
 class OntologyValidationError(
@@ -250,24 +253,36 @@ def validate_ontology_compliance(
     for index, constraint in enumerate(
         constraint_set.constraints
     ):
-        judgment = _judge_constraint(
-            generated_response=(
-                generated_response
-            ),
-            constraint_type=(
-                constraint.constraint_type
-            ),
-            subject_name=(
-                constraint.subject_name
-            ),
-            predicate_name=(
-                constraint.predicate_name
-            ),
-            object_name=(
-                constraint.object_name
-            ),
-            settings=settings,
-        )
+        with observed_span(
+            "llm.ontology_validation",
+            attributes={
+                "medonto.model": (
+                    settings.openrouter_model
+                ),
+                "medonto.operation": (
+                    "ontology_validation"
+                ),
+                "medonto.constraint_index": index,
+            },
+        ):
+            judgment = _judge_constraint(
+                generated_response=(
+                    generated_response
+                ),
+                constraint_type=(
+                    constraint.constraint_type
+                ),
+                subject_name=(
+                    constraint.subject_name
+                ),
+                predicate_name=(
+                    constraint.predicate_name
+                ),
+                object_name=(
+                    constraint.object_name
+                ),
+                settings=settings,
+            )
 
         items.append(
             OntologyValidationItem(

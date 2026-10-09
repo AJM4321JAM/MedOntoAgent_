@@ -73,7 +73,6 @@ The current core stack includes:
 
 Planned or later-stage components include:
 
-- OpenTelemetry
 - Docker
 - AWS
 - GitHub Actions
@@ -1231,6 +1230,76 @@ Application logs avoid raw questions, retrieved clinical text, credentials, auth
 
 MedOntoAgent does not fall back to ungrounded model answers when retrieval or validation infrastructure fails.
 
+## Observability
+
+Phase 25 adds OpenTelemetry tracing and metrics across the MedOntoAgent request path.
+
+Telemetry is disabled by default with `OTEL_ENABLED=false`.
+
+When enabled, MedOntoAgent exports OTLP/HTTP telemetry to the configured collector endpoint. The default endpoint is `http://localhost:4318`.
+
+The default OpenTelemetry service identity is:
+
+- `service.name=medontoagent`
+- `service.version=0.1.0`
+
+Application tracing now covers:
+
+- FastAPI requests
+- `medonto.graph`
+- `agent.initialize`
+- `agent.map_concepts`
+- `agent.build_constraints`
+- `agent.retrieve`
+- `embedding.generate`
+- `qdrant.query`
+- `agent.generate`
+- `llm.medonto_generation`
+- `agent.validate`
+- `llm.citation_validation`
+- `llm.ontology_validation`
+- `agent.retry`
+- `agent.verified`
+- `agent.abstain`
+- `llm.concept_extraction`
+
+Operational metrics include:
+
+- `medonto.requests`
+- `medonto.request.duration`
+- `medonto.retries`
+- `medonto.retrieval.results`
+
+FastAPI instrumentation also emits standard HTTP server telemetry.
+
+The development OpenTelemetry Collector configuration is stored in:
+
+`observability/otel-collector-config.yaml`
+
+The Collector accepts OTLP over HTTP on port `4318` and uses the debug exporter for development traces and metrics.
+
+A real Phase 25 end-to-end smoke test verified the path:
+
+FastAPI -> MedOntoAgent -> local embedding -> Qdrant Cloud -> OpenRouter -> validation -> VERIFIED response -> OpenTelemetry Collector.
+
+The smoke request retrieved four approved chunks and completed with a `VERIFIED` response.
+
+Trace-to-metric correlation was also observed through an OpenTelemetry exemplar carrying the same trace ID as the retrieval span.
+
+### Telemetry Security Boundary
+
+Observability follows the rule:
+
+**Observe system behavior, not clinical content.**
+
+Telemetry may include bounded operational metadata such as request status, latency, retry count, retrieval result count, retrieval mode, ontology-filter state, model identifier, embedding dimensions, batch size, and numeric claim or constraint indexes.
+
+Telemetry must not include raw clinical questions, retrieved evidence text, generated answers, prompts, validation feedback text, claim text, API keys, authorization headers, or provider response bodies.
+
+Custom application spans disable automatic exception recording so Python stack traces and exception bodies are not exported through those spans.
+
+Dedicated observability regression tests verify the disabled no-op path, metrics safety, span safety, and prohibited telemetry attribute names.
+
 ## Next Phase
 
-Phase 25 will add OpenTelemetry and production observability while preserving the security and evaluation controls established in Phases 20 through 24.
+Phase 26 will add containerization and deployment packaging on top of the Phase 25 observability foundation.
