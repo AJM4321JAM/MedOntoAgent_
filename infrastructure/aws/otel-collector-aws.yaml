@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+
+exporters:
+  awsxray:
+    region: ap-southeast-2
+
+  awsemf:
+    region: ap-southeast-2
+    namespace: MedOntoAgent
+    log_group_name: /aws/ecs/application/metrics
+    log_stream_name: medontoagent
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - awsxray
+
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - awsemf

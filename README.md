@@ -1340,6 +1340,48 @@ Phase 26 additionally verified that:
 - static Docker and Compose configuration tests pass
 - the full regression suite passes with 219 tests
 
-## Next Phase
+## Current Phase
 
-Phase 27 will add AWS deployment foundations on top of the Phase 26 containerized application.
+Phase 27 AWS deployment, production-path validation, observability verification, and controlled teardown completed.
+
+## AWS Deployment
+
+Phase 27 validated MedOntoAgent on AWS in `ap-southeast-2`.
+
+Validated architecture:
+
+Internet
+-> API Gateway HTTP API
+-> VPC Link
+-> internal Application Load Balancer
+-> ECS Fargate
+-> MedOntoAgent + OpenTelemetry Collector sidecar
+
+Deployment components validated:
+
+- Amazon ECR for the MedOntoAgent container image
+- Amazon ECS Fargate for application runtime
+- internal Application Load Balancer for private service ingress
+- API Gateway HTTP API for public access
+- API Gateway VPC Link for private connectivity to the ALB
+- AWS Secrets Manager for OpenRouter, Qdrant, and admin credentials
+- Amazon S3 for controlled project assets
+- IAM execution and task roles with scoped permissions
+- CloudWatch Logs for application and collector logs
+- CloudWatch metrics exported through OpenTelemetry
+- AWS X-Ray traces exported through OpenTelemetry
+
+Runtime validation confirmed:
+
+- `/health` returned `healthy` in the production environment
+- development-only `/llm-test` returned HTTP 404
+- `POST /query` completed successfully through the public AWS endpoint
+- Qdrant retrieval was reached successfully
+- OpenRouter-backed workflow execution completed
+- valid `ABSTAINED` responses were preserved as normal application outcomes
+- custom `medonto.*` metrics appeared in CloudWatch
+- successful and failed request traces appeared in AWS X-Ray
+- raw secrets were not embedded in the container image or task definition
+
+The production validation infrastructure was torn down after testing to minimize ongoing AWS cost. Reusable deployment definitions remain in `infrastructure/aws/`.
+

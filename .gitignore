@@ -39,3 +39,5 @@ evals/results/*.json
 !evals/results/.gitkeep
 # Local OpenTelemetry Collector binaries
 tools/otelcol/
+
+infrastructure/aws/*.rendered.json
