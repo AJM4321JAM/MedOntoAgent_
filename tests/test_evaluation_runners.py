@@ -687,3 +687,68 @@ def test_medonto_runner_records_baseline_fallback() -> None:
         result.error_message
         is None
     )
+
+
+
+def test_medonto_runner_records_failed_baseline_fallback() -> None:
+    execution = MedOntoExecution(
+        execution_mode=(
+            "BASELINE_FALLBACK"
+        ),
+        baseline_response=None,
+        fallback_reason=(
+            "MedOntoGenerationError"
+        ),
+        fallback_error=(
+            "BaselineRAGError"
+        ),
+    )
+
+    with patch(
+        "evals.medonto_runner."
+        "execute_medonto",
+        return_value=execution,
+    ):
+        artifact = (
+            run_medonto_dataset(
+                one_question_dataset(),
+                settings=settings(),
+            )
+        )
+
+    result = artifact.results[0]
+
+    assert (
+        result.system
+        == "MEDONTO"
+    )
+
+    assert (
+        result.execution_mode
+        == "BASELINE_FALLBACK"
+    )
+
+    assert (
+        result.system_status
+        == "ERROR"
+    )
+
+    assert (
+        result.behavior_match
+        is False
+    )
+
+    assert (
+        result.fallback_reason
+        == "MedOntoGenerationError"
+    )
+
+    assert (
+        result.fallback_error
+        == "BaselineRAGError"
+    )
+
+    assert (
+        result.error_message
+        == "Fallback failed: BaselineRAGError"
+    )

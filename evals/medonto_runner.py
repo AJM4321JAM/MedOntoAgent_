@@ -314,13 +314,57 @@ def run_medonto_dataset(
                 )
 
                 if baseline_response is None:
-                    raise RuntimeError(
-                        (
-                            "Fallback execution did "
-                            "not return a baseline "
-                            "response."
+                    result = (
+                        EvaluationResultRecord(
+                            question_id=(
+                                question.question_id
+                            ),
+                            category=(
+                                question.category
+                            ),
+                            question=(
+                                question.question
+                            ),
+                            expected_behavior=(
+                                question.expected_behavior
+                            ),
+                            system="MEDONTO",
+                            execution_mode=(
+                                "BASELINE_FALLBACK"
+                            ),
+                            system_status="ERROR",
+                            behavior_match=False,
+                            answer=None,
+                            citation_chunk_ids=[],
+                            citation_document_ids=[],
+                            retrieved_chunk_ids=[],
+                            retrieved_document_ids=[],
+                            retrieved_contexts=[],
+                            ontology_constraints=[],
+                            used_ontology_filter=False,
+                            retrieval_relaxed=False,
+                            retry_count=None,
+                            latency_ms=(
+                                latency_ms
+                            ),
+                            error_message=(
+                                "Fallback failed: "
+                                f"{execution.fallback_error}"
+                            ),
+                            fallback_reason=(
+                                execution.fallback_reason
+                            ),
+                            fallback_error=(
+                                execution.fallback_error
+                            ),
                         )
                     )
+
+                    results.append(
+                        result
+                    )
+
+                    continue
 
                 system_status = (
                     baseline_response.status
@@ -397,6 +441,7 @@ def run_medonto_dataset(
                             execution
                             .fallback_reason
                         ),
+                        fallback_error=None,
                     )
                 )
 
@@ -571,6 +616,7 @@ def run_medonto_dataset(
                         error_message
                     ),
                     fallback_reason=None,
+                    fallback_error=None,
                 )
             )
 
@@ -619,6 +665,7 @@ def run_medonto_dataset(
                         f"{type(exc).__name__}"
                     ),
                     fallback_reason=None,
+                    fallback_error=None,
                 )
             )
 

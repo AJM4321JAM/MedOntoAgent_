@@ -5,6 +5,9 @@ import pytest
 from app.agent.execution import (
     execute_medonto,
 )
+from app.llm.baseline import (
+    BaselineRAGError,
+)
 from app.llm.medonto_generation import (
     MedOntoGenerationError,
 )
@@ -145,3 +148,50 @@ def test_unexpected_programming_error_is_not_hidden() -> None:
             )
 
     mock_baseline.assert_not_called()
+
+
+
+def test_failed_baseline_fallback_is_auditable() -> None:
+    with (
+        patch(
+            "app.agent.execution."
+            "medonto_graph.invoke",
+            side_effect=(
+                MedOntoGenerationError(
+                    "Synthetic MedOnto failure."
+                )
+            ),
+        ),
+        patch(
+            "app.agent.execution."
+            "run_baseline_rag",
+            side_effect=(
+                BaselineRAGError(
+                    "Synthetic baseline failure."
+                )
+            ),
+        ),
+    ):
+        result = execute_medonto(
+            "Synthetic question?"
+        )
+
+    assert (
+        result.execution_mode
+        == "BASELINE_FALLBACK"
+    )
+
+    assert (
+        result.baseline_response
+        is None
+    )
+
+    assert (
+        result.fallback_reason
+        == "MedOntoGenerationError"
+    )
+
+    assert (
+        result.fallback_error
+        == "BaselineRAGError"
+    )

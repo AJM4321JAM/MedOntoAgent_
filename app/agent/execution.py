@@ -3,7 +3,10 @@ from typing import Any, Literal
 
 from app.agent.graph import medonto_graph
 from app.config.settings import Settings
-from app.llm.baseline import run_baseline_rag
+from app.llm.baseline import (
+    BaselineRAGError,
+    run_baseline_rag,
+)
 from app.llm.client import LLMServiceError
 from app.llm.medonto_generation import (
     MedOntoGenerationError,
@@ -64,6 +67,8 @@ class MedOntoExecution:
 
     fallback_reason: str | None = None
 
+    fallback_error: str | None = None
+
 
 def execute_medonto(
     query: str,
@@ -87,10 +92,33 @@ def execute_medonto(
         )
 
     except FALLBACK_EXCEPTIONS as exc:
-        baseline_response = run_baseline_rag(
-            query,
-            settings=settings,
+        fallback_reason = (
+            type(exc).__name__
         )
+
+        try:
+            baseline_response = run_baseline_rag(
+                query,
+                settings=settings,
+            )
+
+        except (
+            BaselineRAGError,
+            RetrievalError,
+            LLMServiceError,
+        ) as fallback_exc:
+            return MedOntoExecution(
+                execution_mode=(
+                    "BASELINE_FALLBACK"
+                ),
+                baseline_response=None,
+                fallback_reason=(
+                    fallback_reason
+                ),
+                fallback_error=(
+                    type(fallback_exc).__name__
+                ),
+            )
 
         return MedOntoExecution(
             execution_mode=(
@@ -100,8 +128,9 @@ def execute_medonto(
                 baseline_response
             ),
             fallback_reason=(
-                type(exc).__name__
+                fallback_reason
             ),
+            fallback_error=None,
         )
 
     return MedOntoExecution(
