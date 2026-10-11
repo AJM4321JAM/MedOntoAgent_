@@ -14,6 +14,11 @@ from app.llm.baseline import (
     run_baseline_rag,
 )
 from app.llm.error_classification import classify_error
+from app.llm.request_budget import (
+    EvaluationBudgetExhausted,
+    RequestBudget,
+    activate_request_budget,
+)
 from app.models.evaluation import (
     EvaluationDataset,
     EvaluationResultRecord,
@@ -35,6 +40,26 @@ DEFAULT_DATASET_PATH = Path(
 
 
 def run_baseline_dataset(
+    dataset: EvaluationDataset,
+    *,
+    settings: Settings | None = None,
+    request_budget: RequestBudget | None = None,
+) -> EvaluationRunArtifact:
+    """Run an evaluation with an optional shared request budget."""
+    if request_budget is None:
+        return _run_baseline_dataset_impl(
+            dataset,
+            settings=settings,
+        )
+
+    with activate_request_budget(request_budget):
+        return _run_baseline_dataset_impl(
+            dataset,
+            settings=settings,
+        )
+
+
+def _run_baseline_dataset_impl(
     dataset: EvaluationDataset,
     *,
     settings: Settings | None = None,
@@ -162,6 +187,9 @@ def run_baseline_dataset(
                 )
             )
 
+        except EvaluationBudgetExhausted:
+            raise
+
         except Exception as exc:
             latency_ms = (
                 (
@@ -257,7 +285,51 @@ def main() -> None:
         default=None,
     )
 
+    parser.add_argument(
+        "--max-provider-requests",
+        type=int,
+        default=None,
+        help="Maximum Gemini HTTP attempts during this evaluation.",
+    )
+
+    parser.add_argument(
+        "--min-request-interval",
+        type=float,
+        default=None,
+        help="Minimum seconds between Gemini HTTP attempts.",
+    )
+
     args = parser.parse_args()
+
+    if (
+        (args.max_provider_requests is None)
+        != (args.min_request_interval is None)
+    ):
+        parser.error(
+            "Both --max-provider-requests and "
+            "--min-request-interval must be provided together."
+        )
+
+    request_budget = None
+
+    if args.max_provider_requests is not None:
+        if args.max_provider_requests < 1:
+            parser.error(
+                "--max-provider-requests must be positive."
+            )
+
+        if not (
+            0 <= args.min_request_interval < float("inf")
+        ):
+            parser.error(
+                "--min-request-interval must be finite "
+                "and nonnegative."
+            )
+
+        request_budget = RequestBudget(
+            max_attempts=args.max_provider_requests,
+            min_interval_seconds=args.min_request_interval,
+        )
 
     dataset = (
         load_evaluation_dataset(
@@ -271,6 +343,7 @@ def main() -> None:
         run_baseline_dataset(
             dataset,
             settings=settings,
+            request_budget=request_budget,
         )
     )
 

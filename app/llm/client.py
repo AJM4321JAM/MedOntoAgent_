@@ -12,6 +12,7 @@ from openai import (
 )
 
 from app.config.settings import Settings, get_settings
+from app.llm.request_budget import get_active_budget
 from app.llm.prompts import (
     LLM_TEST_SYSTEM_PROMPT,
     LLM_TEST_USER_PROMPT,
@@ -144,6 +145,9 @@ def _call_with_one_retry(
         total_attempts + 1,
     ):
         try:
+            budget = get_active_budget()
+            if budget is not None:
+                budget.before_request()
             return operation()
 
         except RateLimitError as exc:

@@ -936,3 +936,136 @@ def test_baseline_runner_classifies_nested_rate_limit() -> None:
     assert result.error_category == "RATE_LIMIT"
     assert result.medonto_error_category is None
     assert result.error_message == "Execution failed: BaselineRAGError"
+
+
+
+def test_budget_exhaustion_stops_baseline_evaluation() -> None:
+    from app.llm.request_budget import EvaluationBudgetExhausted
+
+    with patch(
+        "evals.baseline_runner.run_baseline_rag",
+        side_effect=EvaluationBudgetExhausted(
+            "Synthetic budget exhaustion"
+        ),
+    ):
+        with pytest.raises(EvaluationBudgetExhausted):
+            run_baseline_dataset(
+                one_question_dataset(),
+                settings=settings(),
+            )
+
+
+def test_budget_exhaustion_stops_medonto_evaluation() -> None:
+    from app.llm.request_budget import EvaluationBudgetExhausted
+
+    with patch(
+        "evals.medonto_runner.execute_medonto",
+        side_effect=EvaluationBudgetExhausted(
+            "Synthetic budget exhaustion"
+        ),
+    ):
+        with pytest.raises(EvaluationBudgetExhausted):
+            run_medonto_dataset(
+                one_question_dataset(),
+                settings=settings(),
+            )
+
+
+
+def test_baseline_runner_shares_request_budget_across_questions() -> None:
+    from app.llm.request_budget import (
+        RequestBudget,
+        get_active_budget,
+    )
+
+    dataset = one_question_dataset()
+    dataset.questions.append(
+        dataset.questions[0].model_copy(
+            update={"question_id": "TEST-002"}
+        )
+    )
+
+    budget = RequestBudget(max_attempts=2)
+    observed_budgets = []
+
+    def synthetic_failure(*args, **kwargs):
+        active = get_active_budget()
+        observed_budgets.append(active)
+        assert active is budget
+        active.before_request()
+        raise RuntimeError("Synthetic question failure")
+
+    with patch(
+        "evals.baseline_runner.run_baseline_rag",
+        side_effect=synthetic_failure,
+    ):
+        artifact = run_baseline_dataset(
+            dataset,
+            settings=settings(),
+            request_budget=budget,
+        )
+
+    assert len(artifact.results) == 2
+    assert all(result.system_status == "ERROR" for result in artifact.results)
+    assert observed_budgets == [budget, budget]
+    assert budget.attempts == 2
+    assert get_active_budget() is None
+
+
+def test_medonto_runner_activates_request_budget() -> None:
+    from app.llm.request_budget import (
+        RequestBudget,
+        get_active_budget,
+    )
+
+    budget = RequestBudget(max_attempts=2)
+
+    def synthetic_execution(*args, **kwargs):
+        assert get_active_budget() is budget
+        budget.before_request()
+        raise RuntimeError("Synthetic execution failure")
+
+    with patch(
+        "evals.medonto_runner.execute_medonto",
+        side_effect=synthetic_execution,
+    ):
+        artifact = run_medonto_dataset(
+            one_question_dataset(),
+            settings=settings(),
+            request_budget=budget,
+        )
+
+    assert len(artifact.results) == 1
+    assert artifact.results[0].system_status == "ERROR"
+    assert budget.attempts == 1
+    assert get_active_budget() is None
+
+
+def test_runner_cleans_up_context_after_budget_exhaustion() -> None:
+    from app.llm.request_budget import (
+        EvaluationBudgetExhausted,
+        RequestBudget,
+        get_active_budget,
+    )
+
+    budget = RequestBudget(max_attempts=1)
+
+    def synthetic_execution(*args, **kwargs):
+        active = get_active_budget()
+        assert active is budget
+        active.before_request()
+        active.before_request()
+
+    with patch(
+        "evals.medonto_runner.execute_medonto",
+        side_effect=synthetic_execution,
+    ):
+        with pytest.raises(EvaluationBudgetExhausted):
+            run_medonto_dataset(
+                one_question_dataset(),
+                settings=settings(),
+                request_budget=budget,
+            )
+
+    assert budget.attempts == 1
+    assert get_active_budget() is None
