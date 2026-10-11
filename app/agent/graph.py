@@ -6,6 +6,7 @@ from langgraph.graph import (
 
 from app.agent.nodes import (
     abstain_node,
+    baseline_routed_node,
     concept_mapping_node,
     constraint_generation_node,
     grounded_generation_node,
@@ -16,6 +17,7 @@ from app.agent.nodes import (
     verified_node,
 )
 from app.agent.routing import (
+    route_after_constraints,
     route_after_generation,
     route_after_retrieval,
     route_after_validation,
@@ -51,6 +53,11 @@ def build_medonto_graph():
     builder.add_node(
         "retrieve",
         retrieval_node,
+    )
+
+    builder.add_node(
+        "baseline_routed",
+        baseline_routed_node,
     )
 
     builder.add_node(
@@ -93,9 +100,18 @@ def build_medonto_graph():
         "build_constraints",
     )
 
-    builder.add_edge(
+    builder.add_conditional_edges(
         "build_constraints",
-        "retrieve",
+        route_after_constraints,
+        {
+            "retrieve": "retrieve",
+            "baseline": "baseline_routed",
+        },
+    )
+
+    builder.add_edge(
+        "baseline_routed",
+        END,
     )
 
     builder.add_conditional_edges(

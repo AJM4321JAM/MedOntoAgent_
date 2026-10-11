@@ -432,6 +432,23 @@ def increment_retry_node(
         }
 
 
+def baseline_routed_node(
+    state: MedOntoState,
+) -> dict:
+    """
+    Terminal graph state indicating that no governed ontology
+    constraint applies and conventional baseline RAG should run.
+    """
+    with observed_span(
+        "agent.baseline_routed"
+    ):
+        return {
+            "orchestration_status": (
+                "BASELINE_ROUTED"
+            ),
+        }
+
+
 def verified_node(
     state: MedOntoState,
 ) -> dict:

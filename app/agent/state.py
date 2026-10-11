@@ -26,6 +26,7 @@ OrchestrationStatus = Literal[
     "RUNNING",
     "VERIFIED",
     "ABSTAINED",
+    "BASELINE_ROUTED",
     "ERROR",
 ]
 

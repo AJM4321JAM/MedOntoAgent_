@@ -9,6 +9,7 @@ from app.agent.graph import (
 )
 from app.agent.nodes import (
     abstain_node,
+    baseline_routed_node,
     increment_retry_node,
     verified_node,
 )
@@ -209,6 +210,21 @@ def deterministic_validation_node(
         "validation_passed": True,
         "validation_reason": None,
     }
+
+
+def test_baseline_routed_node_marks_terminal_state() -> None:
+    state: MedOntoState = {
+        "query": "Synthetic question",
+    }
+
+    result = baseline_routed_node(
+        state
+    )
+
+    assert (
+        result["orchestration_status"]
+        == "BASELINE_ROUTED"
+    )
 
 
 def test_graph_compiles() -> None:
