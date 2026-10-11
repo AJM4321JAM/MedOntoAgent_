@@ -184,6 +184,11 @@ def test_verified_query_returns_safe_public_response(
     )
 
     assert (
+        body["execution_mode"]
+        == "MEDONTO"
+    )
+
+    assert (
         body["answer"]
         == (
             "Treatment X is contraindicated "
@@ -277,6 +282,7 @@ def test_verified_query_returns_safe_public_response(
         "query",
         "answer",
         "status",
+        "execution_mode",
         "citations",
         "ontology_constraints",
         "retrieval",

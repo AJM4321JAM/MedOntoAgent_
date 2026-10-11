@@ -228,6 +228,11 @@ class MedOntoQueryResponse(BaseModel):
         "ERROR",
     ]
 
+    execution_mode: Literal[
+        "MEDONTO",
+        "BASELINE_FALLBACK",
+    ] = "MEDONTO"
+
     citations: list[PublicCitation] = Field(
         default_factory=list,
     )

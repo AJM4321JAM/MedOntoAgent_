@@ -44,6 +44,13 @@ EvaluationSystemStatus = Literal[
 ]
 
 
+ExecutionMode = Literal[
+    "BASELINE",
+    "MEDONTO",
+    "BASELINE_FALLBACK",
+]
+
+
 class GoldenQuestion(BaseModel):
     """
     One versioned evaluation question.
@@ -249,6 +256,8 @@ class EvaluationResultRecord(BaseModel):
 
     system: EvaluationSystem
 
+    execution_mode: ExecutionMode | None = None
+
     system_status: EvaluationSystemStatus
 
     behavior_match: bool
@@ -293,6 +302,19 @@ class EvaluationResultRecord(BaseModel):
     )
 
     error_message: str | None = None
+
+    @model_validator(mode="after")
+    def infer_execution_mode(
+        self,
+    ) -> "EvaluationResultRecord":
+        """
+        Preserve compatibility with older artifacts while making
+        the actual execution path explicit for new evaluations.
+        """
+        if self.execution_mode is None:
+            self.execution_mode = self.system
+
+        return self
 
 
 class EvaluationRunArtifact(BaseModel):

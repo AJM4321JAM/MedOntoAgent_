@@ -329,6 +329,11 @@ def test_medonto_runner_records_graph_metadata() -> None:
     )
 
     assert (
+        result.execution_mode
+        == "MEDONTO"
+    )
+
+    assert (
         result.behavior_match
         is True
     )
