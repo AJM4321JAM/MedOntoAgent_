@@ -5,6 +5,35 @@ from app.agent.state import (
 )
 
 
+def route_after_constraints(
+    state: MedOntoState,
+) -> Literal[
+    "retrieve",
+    "baseline",
+]:
+    """
+    Use the ontology path only when at least one governed,
+    control-eligible ontology constraint applies to the query.
+
+    Otherwise route deliberately to conventional baseline RAG.
+    """
+    constraint_set = state.get(
+        "constraint_set"
+    )
+
+    if constraint_set is None:
+        return "baseline"
+
+    if any(
+        constraint.control_eligible
+        for constraint
+        in constraint_set.constraints
+    ):
+        return "retrieve"
+
+    return "baseline"
+
+
 def route_after_retrieval(
     state: MedOntoState,
 ) -> Literal[

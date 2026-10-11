@@ -13,6 +13,7 @@ from app.agent.nodes import (
     verified_node,
 )
 from app.agent.routing import (
+    route_after_constraints,
     route_after_generation,
     route_after_retrieval,
     route_after_validation,
@@ -214,6 +215,89 @@ def test_graph_compiles() -> None:
     graph = build_medonto_graph()
 
     assert graph is not None
+
+
+def test_route_after_constraints_uses_medonto_for_control_constraint() -> None:
+    constraint = type(
+        "Constraint",
+        (),
+        {
+            "control_eligible": True,
+        },
+    )()
+
+    constraint_set = type(
+        "ConstraintSet",
+        (),
+        {
+            "constraints": [
+                constraint,
+            ],
+        },
+    )()
+
+    state: MedOntoState = {
+        "constraint_set": constraint_set,
+    }
+
+    assert (
+        route_after_constraints(
+            state
+        )
+        == "retrieve"
+    )
+
+
+def test_route_after_constraints_uses_baseline_without_control_constraint() -> None:
+    constraint = type(
+        "Constraint",
+        (),
+        {
+            "control_eligible": False,
+        },
+    )()
+
+    constraint_set = type(
+        "ConstraintSet",
+        (),
+        {
+            "constraints": [
+                constraint,
+            ],
+        },
+    )()
+
+    state: MedOntoState = {
+        "constraint_set": constraint_set,
+    }
+
+    assert (
+        route_after_constraints(
+            state
+        )
+        == "baseline"
+    )
+
+
+def test_route_after_constraints_uses_baseline_when_constraints_empty() -> None:
+    constraint_set = type(
+        "ConstraintSet",
+        (),
+        {
+            "constraints": [],
+        },
+    )()
+
+    state: MedOntoState = {
+        "constraint_set": constraint_set,
+    }
+
+    assert (
+        route_after_constraints(
+            state
+        )
+        == "baseline"
+    )
 
 
 def test_route_after_retrieval_abstains_without_evidence() -> None:
