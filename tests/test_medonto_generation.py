@@ -536,3 +536,29 @@ def test_constraint_formatter_includes_recommendation_qualifiers() -> None:
         "If the primary option is not suitable"
         in result
     )
+
+
+def test_provider_failure_does_not_retry_medonto_generation() -> None:
+    from app.llm.client import LLMServiceError
+
+    with (
+        patch("app.llm.medonto_generation.create_llm_client"),
+        patch(
+            "app.llm.medonto_generation._call_with_one_retry",
+            side_effect=LLMServiceError(
+                "Provider rate limit exhausted."
+            ),
+        ) as mock_retry,
+    ):
+        with pytest.raises(
+            LLMServiceError,
+            match="Provider rate limit exhausted",
+        ):
+            generate_medonto_draft(
+                query="Synthetic clinical question",
+                retrieval=create_retrieval(),
+                constraint_set=create_constraint_set(),
+                settings=create_settings(),
+            )
+
+    assert mock_retry.call_count == 1

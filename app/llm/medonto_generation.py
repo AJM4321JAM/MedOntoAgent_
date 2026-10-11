@@ -532,10 +532,10 @@ def generate_medonto_draft(
 
             return draft
 
-        except (
-            LLMServiceError,
-            MedOntoGenerationError,
-        ) as exc:
+        except LLMServiceError:
+            raise
+
+        except MedOntoGenerationError as exc:
             last_error = exc
 
             if attempt == total_attempts:

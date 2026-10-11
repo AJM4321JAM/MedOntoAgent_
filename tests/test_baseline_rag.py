@@ -446,3 +446,30 @@ def test_complete_baseline_orchestration(
         result.citations[0].chunk_id
         == "DOC-test-CHUNK-0000"
     )
+
+
+def test_provider_failure_does_not_retry_baseline_generation() -> None:
+    from app.llm.client import LLMServiceError
+
+    with (
+        patch("app.llm.baseline.create_llm_client"),
+        patch(
+            "app.llm.baseline._call_with_one_retry",
+            side_effect=LLMServiceError(
+                "Provider rate limit exhausted."
+            ),
+        ) as mock_retry,
+    ):
+        with pytest.raises(
+            LLMServiceError,
+            match="Provider rate limit exhausted",
+        ):
+            generate_baseline_answer(
+                query="Synthetic clinical question",
+                retrieval=create_retrieval_result(
+                    [create_chunk()]
+                ),
+                settings=create_test_settings(),
+            )
+
+    assert mock_retry.call_count == 1

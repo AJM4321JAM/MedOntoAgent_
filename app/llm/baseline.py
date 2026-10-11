@@ -390,10 +390,10 @@ def generate_baseline_answer(
 
             return output
 
-        except (
-            BaselineRAGError,
-            LLMServiceError,
-        ) as exc:
+        except LLMServiceError:
+            raise
+
+        except BaselineRAGError as exc:
             last_error = exc
 
             if (
