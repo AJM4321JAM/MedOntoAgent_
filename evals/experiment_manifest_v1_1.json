@@ -1,0 +1,29 @@
+{
+  "experiment_id": "MEDONTO-EVAL-V1.1",
+  "git_tag": "medonto-eval-v1.1",
+  "frozen_system_commit": "febb170d37ecef00177e3ff08c5a0ee99d071213",
+  "evaluator_pacing_commit": "1e1ae12",
+  "corpus_version": "clinical-corpus-v1",
+  "golden_dataset_version": "1.0",
+  "primary_execution_count": 50,
+  "baseline_run_id": "baseline-20261011T141303485893Z",
+  "medonto_run_id": "medonto-20261011T141622488820Z",
+  "baseline_output": "baseline_final_v1_1.json",
+  "medonto_output": "medonto_final_v1_1.json",
+  "deterministic_comparison": "comparison_final_v1_1.json",
+  "ragas_baseline": "ragas_baseline_final_v1_1.json",
+  "ragas_medonto": "ragas_medonto_final_v1_1.json",
+  "category_summary": "category_summary_final_v1_1.json",
+  "ragas_category_summary": "ragas_category_summary_final_v1_1.json",
+  "final_summary_json": "final_summary_v1_1.json",
+  "final_summary_markdown": "final_summary_v1_1.md",
+  "manual_review": "manual_review_final_v1_1.csv",
+  "artifact_hashes": "artifact_hashes_final_v1_1.txt",
+  "status": "COMPLETED",
+  "notes": [
+    "Primary Baseline and MedOnto executions used the system frozen at medonto-eval-v1.1.",
+    "The later evaluator pacing commit changed only Ragas request timing to remain within provider free-tier request-per-minute limits.",
+    "The evaluator pacing change did not regenerate or alter the primary Baseline or MedOnto run artifacts.",
+    "Manual review covered all 25 paired questions and therefore all 50 primary system outputs."
+  ]
+}

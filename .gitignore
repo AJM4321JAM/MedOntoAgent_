@@ -41,3 +41,8 @@ evals/results/*.json
 tools/otelcol/
 
 infrastructure/aws/*.rendered.json
+
+# Generated evaluation reports and review artifacts
+evals/results/*.txt
+evals/results/*.md
+evals/results/*.csv
