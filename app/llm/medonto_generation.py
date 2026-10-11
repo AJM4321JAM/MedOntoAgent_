@@ -81,7 +81,7 @@ def get_control_constraints(
         constraint
         for constraint
         in constraint_set.constraints
-        if constraint.retrieval_eligible
+        if constraint.control_eligible
     ]
 
 
@@ -126,6 +126,14 @@ def format_ontology_constraints(
                     (
                         "object_name: "
                         f"{constraint.object_name}"
+                    ),
+                    (
+                        "recommendation_priority: "
+                        f"{constraint.recommendation_priority}"
+                    ),
+                    (
+                        "recommendation_condition: "
+                        f"{constraint.recommendation_condition}"
                     ),
                 ]
             )

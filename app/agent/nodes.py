@@ -13,6 +13,10 @@ from app.observability.metrics import (
 from app.observability.tracing import (
     observed_span,
 )
+from app.ingestion.registry import (
+    DEFAULT_REGISTRY_PATH,
+    DocumentRegistry,
+)
 from app.ontology.concept_mapper import (
     build_ontology_context,
 )
@@ -111,6 +115,10 @@ def constraint_generation_node(
     ) as span:
         graph = load_ontology()
 
+        registry = DocumentRegistry(
+            DEFAULT_REGISTRY_PATH
+        )
+
         constraint_set = build_constraints(
             query=state["query"],
             ontology_context=(
@@ -119,6 +127,7 @@ def constraint_generation_node(
                 ]
             ),
             graph=graph,
+            registry=registry,
         )
 
         span.set_attribute(

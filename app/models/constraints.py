@@ -65,7 +65,15 @@ class OntologyConstraint(BaseModel):
 
     assertion_status: str | None = None
 
-    retrieval_eligible: bool = False
+    recommendation_priority: int | None = None
+
+    recommendation_condition: str | None = None
+
+    applicability_concepts: list[str] = Field(
+        default_factory=list,
+    )
+
+    control_eligible: bool = False
 
 
 class RetrievalHints(BaseModel):

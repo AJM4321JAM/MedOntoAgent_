@@ -126,7 +126,7 @@ def create_constraint_set() -> OntologyConstraintSet:
         assertion_status=(
             "ACTIVE"
         ),
-        retrieval_eligible=True,
+        control_eligible=True,
     )
 
     return OntologyConstraintSet(
@@ -418,7 +418,7 @@ def test_synthetic_constraint_not_sent_as_generation_control() -> None:
                 "assertion_status": (
                     "SYNTHETIC_TEST_ONLY"
                 ),
-                "retrieval_eligible": False,
+                "control_eligible": False,
             }
         )
     )
@@ -468,7 +468,7 @@ def test_synthetic_constraint_not_expected_in_considered_constraints() -> None:
                 "assertion_status": (
                     "SYNTHETIC_TEST_ONLY"
                 ),
-                "retrieval_eligible": False,
+                "control_eligible": False,
             }
         )
     )
@@ -505,4 +505,34 @@ def test_synthetic_constraint_not_expected_in_considered_constraints() -> None:
         draft=draft,
         retrieval=create_retrieval(),
         constraint_set=synthetic_set,
+    )
+
+
+def test_constraint_formatter_includes_recommendation_qualifiers() -> None:
+    constraint_set = create_constraint_set()
+
+    constraint_set.constraints[0] = (
+        constraint_set.constraints[0].model_copy(
+            update={
+                "recommendation_priority": 2,
+                "recommendation_condition": (
+                    "If the primary option is not suitable"
+                ),
+            }
+        )
+    )
+
+    result = format_ontology_constraints(
+        constraint_set
+    )
+
+    assert (
+        "recommendation_priority: 2"
+        in result
+    )
+
+    assert (
+        "recommendation_condition: "
+        "If the primary option is not suitable"
+        in result
     )

@@ -19,6 +19,7 @@ def create_chunk(
     text: str,
     *,
     chunk_index: int = 0,
+    section_title: str | None = None,
 ) -> DocumentChunk:
     return DocumentChunk(
         chunk_id=(
@@ -27,7 +28,7 @@ def create_chunk(
         document_id="DOC-test",
         chunk_index=chunk_index,
         title="Synthetic Test",
-        section_title=None,
+        section_title=section_title,
         page_number=None,
         document_type=(
             "Synthetic Test Document"
@@ -257,4 +258,35 @@ def test_multiple_chunks_are_tagged() -> None:
         == [
             "Pregnancy"
         ]
+    )
+
+def test_section_title_contributes_ontology_tags() -> None:
+    graph = load_ontology()
+
+    chunk = create_chunk(
+        "become pregnant and offer alternatives.",
+        section_title=(
+            "Stop antihypertensive treatment in women "
+            "taking ACE inhibitors or ARBs"
+        ),
+    )
+
+    tagged = tag_chunk_with_ontology(
+        chunk=chunk,
+        graph=graph,
+    )
+
+    assert (
+        "ACEInhibitor"
+        in tagged.ontology_concepts
+    )
+
+    assert (
+        "AngiotensinReceptorBlocker"
+        in tagged.ontology_concepts
+    )
+
+    assert (
+        "Pregnancy"
+        in tagged.ontology_concepts
     )

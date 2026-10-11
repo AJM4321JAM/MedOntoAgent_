@@ -124,7 +124,7 @@ def create_constraint_set() -> OntologyConstraintSet:
                 assertion_status=(
                     "ACTIVE"
                 ),
-                retrieval_eligible=True,
+                control_eligible=True,
             )
         ],
         retrieval_hints=RetrievalHints(
@@ -581,7 +581,7 @@ def test_ineligible_constraint_does_not_create_filter() -> None:
         assertion_status=(
             "SYNTHETIC_TEST_ONLY"
         ),
-        retrieval_eligible=False,
+        control_eligible=False,
     )
 
     constraint_set = OntologyConstraintSet(
@@ -603,4 +603,167 @@ def test_ineligible_constraint_does_not_create_filter() -> None:
             constraint_set
         )
         == []
+    )
+
+
+@patch(
+    "app.retrieval.medonto_retriever."
+    "_query_qdrant"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "create_qdrant_client"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "embed_text"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "build_constraints"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "build_ontology_context"
+)
+def test_strict_retrieval_scopes_to_constraint_source(
+    mock_context: MagicMock,
+    mock_constraints: MagicMock,
+    mock_embed: MagicMock,
+    mock_client: MagicMock,
+    mock_query: MagicMock,
+) -> None:
+    context = create_context()
+    constraint_set = create_constraint_set()
+
+    mock_context.return_value = context
+    mock_constraints.return_value = constraint_set
+    mock_embed.return_value = [0.1, 0.2, 0.3, 0.4]
+    mock_client.return_value = MagicMock()
+    mock_query.return_value = [
+        create_point()
+    ]
+
+    retrieve_medonto(
+        "test question",
+        settings=create_settings(),
+    )
+
+    query_filter = (
+        mock_query.call_args.kwargs[
+            "query_filter"
+        ]
+    )
+
+    conditions = (
+        query_filter.must
+        or []
+    )
+
+    document_conditions = [
+        condition
+        for condition in conditions
+        if getattr(
+            condition,
+            "key",
+            None,
+        )
+        == "document_id"
+    ]
+
+    assert len(document_conditions) == 1
+
+    assert (
+        document_conditions[0]
+        .match
+        .value
+        == "DOC-ACTIVE-TEST"
+    )
+
+
+@patch(
+    "app.retrieval.medonto_retriever."
+    "_query_qdrant"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "create_qdrant_client"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "embed_text"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "build_constraints"
+)
+@patch(
+    "app.retrieval.medonto_retriever."
+    "build_ontology_context"
+)
+def test_relaxed_retrieval_keeps_constraint_source_scope(
+    mock_context: MagicMock,
+    mock_constraints: MagicMock,
+    mock_embed: MagicMock,
+    mock_client: MagicMock,
+    mock_query: MagicMock,
+) -> None:
+    context = create_context()
+    constraint_set = create_constraint_set()
+
+    mock_context.return_value = context
+    mock_constraints.return_value = constraint_set
+    mock_embed.return_value = [0.1, 0.2, 0.3, 0.4]
+    mock_client.return_value = MagicMock()
+
+    mock_query.side_effect = [
+        [],
+        [create_point()],
+    ]
+
+    result = retrieve_medonto(
+        "test question",
+        settings=create_settings(),
+    )
+
+    assert (
+        result.retrieval_relaxed
+        is True
+    )
+
+    assert (
+        mock_query.call_count
+        == 2
+    )
+
+    relaxed_filter = (
+        mock_query.call_args_list[1]
+        .kwargs[
+            "query_filter"
+        ]
+    )
+
+    conditions = (
+        relaxed_filter.must
+        or []
+    )
+
+    document_conditions = [
+        condition
+        for condition in conditions
+        if getattr(
+            condition,
+            "key",
+            None,
+        )
+        == "document_id"
+    ]
+
+    assert len(document_conditions) == 1
+
+    assert (
+        document_conditions[0]
+        .match
+        .value
+        == "DOC-ACTIVE-TEST"
     )

@@ -82,6 +82,8 @@ def _judge_constraint(
     subject_name: str,
     predicate_name: str,
     object_name: str,
+    recommendation_priority: int | None,
+    recommendation_condition: str | None,
     settings: Settings,
 ) -> OntologyJudgeOutput:
     client = create_openrouter_client(
@@ -97,6 +99,8 @@ constraint_type: {constraint_type}
 subject_name: {subject_name}
 predicate_name: {predicate_name}
 object_name: {object_name}
+recommendation_priority: {recommendation_priority}
+recommendation_condition: {recommendation_condition}
 
 Return only the required JSON object.
 """.strip()
@@ -238,7 +242,7 @@ def validate_ontology_compliance(
         constraint
         for constraint
         in constraint_set.constraints
-        if constraint.retrieval_eligible
+        if constraint.control_eligible
     ]
 
     if not eligible:
@@ -287,6 +291,12 @@ def validate_ontology_compliance(
                 ),
                 object_name=(
                     constraint.object_name
+                ),
+                recommendation_priority=(
+                    constraint.recommendation_priority
+                ),
+                recommendation_condition=(
+                    constraint.recommendation_condition
                 ),
                 settings=settings,
             )

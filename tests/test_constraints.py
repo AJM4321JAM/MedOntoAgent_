@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 from rdflib import (
     Literal,
 )
@@ -9,7 +11,7 @@ from app.models.ontology import (
 from app.ontology.constraints import (
     build_constraints,
     classify_relationship,
-    is_constraint_retrieval_eligible,
+    is_constraint_control_eligible,
 )
 from app.ontology.ontology_loader import (
     load_ontology,
@@ -288,7 +290,7 @@ def test_no_relation_produces_no_constraint() -> None:
         == context.query
     )
 
-def test_synthetic_constraint_is_not_retrieval_eligible() -> None:
+def test_synthetic_constraint_is_not_control_eligible() -> None:
     graph = load_ontology()
 
     context = create_constraint_context()
@@ -317,7 +319,7 @@ def test_synthetic_constraint_is_not_retrieval_eligible() -> None:
     )
 
     assert (
-        matching[0].retrieval_eligible
+        matching[0].control_eligible
         is False
     )
 
@@ -347,10 +349,17 @@ def test_active_provenanced_constraint_is_eligible() -> None:
 
     context = create_constraint_context()
 
+    registry = MagicMock()
+
+    registry.is_document_control_eligible.return_value = (
+        True
+    )
+
     result = build_constraints(
         query=context.query,
         ontology_context=context,
         graph=graph,
+        registry=registry,
     )
 
     matching = [
@@ -371,14 +380,14 @@ def test_active_provenanced_constraint_is_eligible() -> None:
     )
 
     assert (
-        matching[0].retrieval_eligible
+        matching[0].control_eligible
         is True
     )
 
 
 def test_unknown_predicate_is_not_control_eligible() -> None:
     assert (
-        is_constraint_retrieval_eligible(
+        is_constraint_control_eligible(
             predicate_name=(
                 "someArbitraryRelation"
             ),
@@ -393,7 +402,7 @@ def test_unknown_predicate_is_not_control_eligible() -> None:
 
 def test_missing_source_document_id_is_not_control_eligible() -> None:
     assert (
-        is_constraint_retrieval_eligible(
+        is_constraint_control_eligible(
             predicate_name=(
                 "contraindicatedIn"
             ),
@@ -402,3 +411,446 @@ def test_missing_source_document_id_is_not_control_eligible() -> None:
         )
         is False
     )
+
+
+def test_missing_applicability_concept_blocks_control() -> None:
+    graph = load_ontology()
+
+    assertion = (
+        MED.AssertionExampleContraindication
+    )
+
+    graph.remove(
+        (
+            assertion,
+            MED.assertionStatus,
+            None,
+        )
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.assertionStatus,
+            Literal("ACTIVE"),
+        )
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.applicabilityConcept,
+            MED.ChronicHypertension,
+        )
+    )
+
+    registry = MagicMock()
+    registry.is_document_control_eligible.return_value = (
+        True
+    )
+
+    context = create_constraint_context()
+
+    result = build_constraints(
+        query=context.query,
+        ontology_context=context,
+        graph=graph,
+        registry=registry,
+    )
+
+    matching = [
+        constraint
+        for constraint
+        in result.constraints
+        if (
+            constraint.predicate_name
+            == "contraindicatedIn"
+        )
+    ]
+
+    assert matching
+
+    assert (
+        matching[0].applicability_concepts
+        == [
+            "ChronicHypertension"
+        ]
+    )
+
+    assert (
+        matching[0].control_eligible
+        is False
+    )
+
+
+def test_present_applicability_concept_allows_control() -> None:
+    graph = load_ontology()
+
+    assertion = (
+        MED.AssertionExampleContraindication
+    )
+
+    graph.remove(
+        (
+            assertion,
+            MED.assertionStatus,
+            None,
+        )
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.assertionStatus,
+            Literal("ACTIVE"),
+        )
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.applicabilityConcept,
+            MED.Pregnancy,
+        )
+    )
+
+    registry = MagicMock()
+    registry.is_document_control_eligible.return_value = (
+        True
+    )
+
+    context = create_constraint_context()
+
+    result = build_constraints(
+        query=context.query,
+        ontology_context=context,
+        graph=graph,
+        registry=registry,
+    )
+
+    matching = [
+        constraint
+        for constraint
+        in result.constraints
+        if (
+            constraint.predicate_name
+            == "contraindicatedIn"
+        )
+    ]
+
+    assert matching
+
+    assert (
+        matching[0].applicability_concepts
+        == [
+            "Pregnancy"
+        ]
+    )
+
+    assert (
+        matching[0].control_eligible
+        is True
+    )
+
+
+def test_real_ng133_treatment_requires_pregnancy_applicability() -> None:
+    graph = load_ontology()
+
+    context = OntologyContext(
+        query=(
+            "What is the role of labetalol "
+            "in chronic hypertension?"
+        ),
+        extracted_concepts=[
+            "chronic hypertension",
+            "labetalol",
+        ],
+        mapped_concepts=[
+            MappedOntologyConcept(
+                original_text="chronic hypertension",
+                concept_name="ChronicHypertension",
+                label="chronic hypertension",
+                uri=(
+                    "https://medontoagent.example.org/"
+                    "ontology/ChronicHypertension"
+                ),
+            ),
+            MappedOntologyConcept(
+                original_text="labetalol",
+                concept_name="Labetalol",
+                label="labetalol",
+                uri=(
+                    "https://medontoagent.example.org/"
+                    "ontology/Labetalol"
+                ),
+            ),
+        ],
+        unknown_concepts=[],
+        mapped_count=2,
+        unknown_count=0,
+    )
+
+    registry = MagicMock()
+    registry.is_document_control_eligible.return_value = (
+        True
+    )
+
+    result = build_constraints(
+        query=context.query,
+        ontology_context=context,
+        graph=graph,
+        registry=registry,
+    )
+
+    matching = [
+        constraint
+        for constraint
+        in result.constraints
+        if (
+            constraint.subject_name
+            == "ChronicHypertension"
+            and constraint.predicate_name
+            == "treatedBy"
+            and constraint.object_name
+            == "Labetalol"
+        )
+    ]
+
+    assert len(matching) == 1
+
+    constraint = matching[0]
+
+    assert (
+        constraint.applicability_concepts
+        == ["Pregnancy"]
+    )
+
+    assert (
+        constraint.recommendation_priority
+        == 1
+    )
+
+    assert (
+        constraint.control_eligible
+        is False
+    )
+
+
+def test_real_ng133_treatment_is_control_eligible_in_pregnancy() -> None:
+    graph = load_ontology()
+
+    context = OntologyContext(
+        query=(
+            "What is the role of labetalol "
+            "for chronic hypertension during pregnancy?"
+        ),
+        extracted_concepts=[
+            "chronic hypertension",
+            "labetalol",
+            "pregnancy",
+        ],
+        mapped_concepts=[
+            MappedOntologyConcept(
+                original_text="chronic hypertension",
+                concept_name="ChronicHypertension",
+                label="chronic hypertension",
+                uri=(
+                    "https://medontoagent.example.org/"
+                    "ontology/ChronicHypertension"
+                ),
+            ),
+            MappedOntologyConcept(
+                original_text="labetalol",
+                concept_name="Labetalol",
+                label="labetalol",
+                uri=(
+                    "https://medontoagent.example.org/"
+                    "ontology/Labetalol"
+                ),
+            ),
+            MappedOntologyConcept(
+                original_text="pregnancy",
+                concept_name="Pregnancy",
+                label="Pregnancy",
+                uri=(
+                    "https://medontoagent.example.org/"
+                    "ontology/Pregnancy"
+                ),
+            ),
+        ],
+        unknown_concepts=[],
+        mapped_count=3,
+        unknown_count=0,
+    )
+
+    registry = MagicMock()
+    registry.is_document_control_eligible.return_value = (
+        True
+    )
+
+    result = build_constraints(
+        query=context.query,
+        ontology_context=context,
+        graph=graph,
+        registry=registry,
+    )
+
+    matching = [
+        constraint
+        for constraint
+        in result.constraints
+        if (
+            constraint.subject_name
+            == "ChronicHypertension"
+            and constraint.predicate_name
+            == "treatedBy"
+            and constraint.object_name
+            == "Labetalol"
+        )
+    ]
+
+    assert len(matching) == 1
+
+    constraint = matching[0]
+
+    assert (
+        constraint.source_document_id
+        == "DOC-e943ba2bdc31"
+    )
+
+    assert (
+        constraint.source_section
+        == "Recommendation 1.3.10"
+    )
+
+    assert (
+        constraint.applicability_concepts
+        == ["Pregnancy"]
+    )
+
+    assert (
+        constraint.recommendation_priority
+        == 1
+    )
+
+    assert (
+        constraint.control_eligible
+        is True
+    )
+
+
+def test_ng133_chronic_hypertension_treatment_order_is_preserved() -> None:
+    graph = load_ontology()
+
+    expected = {
+        "Labetalol": (
+            1,
+            "For chronic hypertension in pregnant women",
+        ),
+        "Nifedipine": (
+            2,
+            "If labetalol is not suitable",
+        ),
+        "Methyldopa": (
+            3,
+            "If both labetalol and nifedipine are not suitable",
+        ),
+    }
+
+    registry = MagicMock()
+    registry.is_document_control_eligible.return_value = (
+        True
+    )
+
+    for drug_name, (
+        expected_priority,
+        expected_condition,
+    ) in expected.items():
+        context = OntologyContext(
+            query=(
+                f"{drug_name} for chronic hypertension "
+                "during pregnancy"
+            ),
+            extracted_concepts=[
+                "chronic hypertension",
+                drug_name,
+                "pregnancy",
+            ],
+            mapped_concepts=[
+                MappedOntologyConcept(
+                    original_text="chronic hypertension",
+                    concept_name="ChronicHypertension",
+                    label="chronic hypertension",
+                    uri=(
+                        "https://medontoagent.example.org/"
+                        "ontology/ChronicHypertension"
+                    ),
+                ),
+                MappedOntologyConcept(
+                    original_text=drug_name,
+                    concept_name=drug_name,
+                    label=drug_name.lower(),
+                    uri=(
+                        "https://medontoagent.example.org/"
+                        f"ontology/{drug_name}"
+                    ),
+                ),
+                MappedOntologyConcept(
+                    original_text="pregnancy",
+                    concept_name="Pregnancy",
+                    label="Pregnancy",
+                    uri=(
+                        "https://medontoagent.example.org/"
+                        "ontology/Pregnancy"
+                    ),
+                ),
+            ],
+            unknown_concepts=[],
+            mapped_count=3,
+            unknown_count=0,
+        )
+
+        result = build_constraints(
+            query=context.query,
+            ontology_context=context,
+            graph=graph,
+            registry=registry,
+        )
+
+        matching = [
+            constraint
+            for constraint
+            in result.constraints
+            if (
+                constraint.subject_name
+                == "ChronicHypertension"
+                and constraint.predicate_name
+                == "treatedBy"
+                and constraint.object_name
+                == drug_name
+            )
+        ]
+
+        assert len(matching) == 1
+
+        constraint = matching[0]
+
+        assert (
+            constraint.recommendation_priority
+            == expected_priority
+        )
+
+        assert (
+            constraint.recommendation_condition
+            == expected_condition
+        )
+
+        assert (
+            constraint.applicability_concepts
+            == ["Pregnancy"]
+        )
+
+        assert (
+            constraint.control_eligible
+            is True
+        )

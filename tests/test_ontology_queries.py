@@ -228,6 +228,9 @@ def test_ambiguous_assertion_provenance_fails_closed() -> None:
         "source_section": None,
         "source_version": None,
         "assertion_status": None,
+        "recommendation_priority": None,
+        "recommendation_condition": None,
+        "applicability_concepts": [],
     }
 
 
@@ -306,3 +309,51 @@ def test_single_concept_cannot_form_relationship_pair() -> None:
     )
 
     assert relationships == []
+
+def test_assertion_recommendation_qualifiers_are_read() -> None:
+    from rdflib import Literal
+
+    graph = load_ontology()
+
+    assertion = (
+        MED.AssertionExampleContraindication
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.recommendationPriority,
+            Literal(2),
+        )
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.recommendationCondition,
+            Literal(
+                "If the primary option is not suitable"
+            ),
+        )
+    )
+
+    provenance = get_assertion_provenance(
+        graph,
+        MED.ExampleAntihypertensiveClass,
+        MED.contraindicatedIn,
+        MED.Pregnancy,
+    )
+
+    assert (
+        provenance[
+            "recommendation_priority"
+        ]
+        == 2
+    )
+
+    assert (
+        provenance[
+            "recommendation_condition"
+        ]
+        == "If the primary option is not suitable"
+    )

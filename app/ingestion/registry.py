@@ -11,6 +11,11 @@ from app.models.documents import (
 )
 
 
+DEFAULT_REGISTRY_PATH = Path(
+    "data/processed/document_registry.json"
+)
+
+
 class DocumentRegistryError(
     RuntimeError
 ):
@@ -374,6 +379,38 @@ class DocumentRegistry:
             updated_old,
             updated_new,
         )
+
+    def is_document_control_eligible(
+        self,
+        document_id: str,
+    ) -> bool:
+        """
+        Return True only when a source document is approved
+        and has not been superseded.
+
+        Missing documents and invalid registry state fail closed.
+        """
+        try:
+            document = self.get_document(
+                document_id
+            )
+        except DocumentRegistryError:
+            return False
+
+        if (
+            document.approval_status
+            != ApprovalStatus.APPROVED
+        ):
+            return False
+
+        if (
+            document.superseded_by_document_id
+            is not None
+        ):
+            return False
+
+        return True
+
 
     def get_active_approved_documents(
         self,

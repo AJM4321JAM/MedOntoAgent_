@@ -278,6 +278,23 @@ def _literal_text(
     )
 
 
+def _literal_int(
+    value,
+) -> int | None:
+    """
+    Convert one RDF literal-like value to integer.
+
+    Invalid or missing values fail closed to None.
+    """
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def get_assertion_provenance(
     graph: Graph,
     subject_uri: URIRef,
@@ -338,6 +355,9 @@ def get_assertion_provenance(
             "source_section": None,
             "source_version": None,
             "assertion_status": None,
+            "recommendation_priority": None,
+            "recommendation_condition": None,
+            "applicability_concepts": [],
         }
 
     assertion = matches[0]
@@ -367,6 +387,31 @@ def get_assertion_provenance(
                 MED.assertionStatus,
             )
         ),
+        "recommendation_priority": _literal_int(
+            graph.value(
+                assertion,
+                MED.recommendationPriority,
+            )
+        ),
+        "recommendation_condition": _literal_text(
+            graph.value(
+                assertion,
+                MED.recommendationCondition,
+            )
+        ),
+        "applicability_concepts": [
+            ontology_concept_name(
+                concept
+            )
+            for concept in graph.objects(
+                assertion,
+                MED.applicabilityConcept,
+            )
+            if isinstance(
+                concept,
+                URIRef,
+            )
+        ],
     }
 
 

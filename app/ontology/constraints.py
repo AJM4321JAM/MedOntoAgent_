@@ -1,5 +1,8 @@
 from rdflib import Graph, URIRef
 
+from app.ingestion.registry import (
+    DocumentRegistry,
+)
 from app.models.constraints import (
     ConstraintType,
     OntologyConstraint,
@@ -48,18 +51,20 @@ ENFORCEABLE_PREDICATES = {
 }
 
 
-def is_constraint_retrieval_eligible(
+def is_constraint_control_eligible(
     *,
     predicate_name: str,
     source_document_id: str | None,
     assertion_status: str | None,
+    registry: DocumentRegistry | None = None,
 ) -> bool:
     """
-    Return whether an ontology assertion may technically
-    control retrieval and generation.
+    Return whether an ontology assertion may control
+    retrieval, generation, validation, or public exposure.
 
-    Phase 28B will additionally require the referenced
-    document to be approved/current in the source registry.
+    Eligibility fails closed unless the assertion is ACTIVE,
+    uses an allow-listed predicate, and references an approved,
+    non-superseded source in the governed document registry.
     """
     if predicate_name not in ENFORCEABLE_PREDICATES:
         return False
@@ -70,7 +75,17 @@ def is_constraint_retrieval_eligible(
     if not source_document_id:
         return False
 
-    return True
+    if registry is None:
+        return False
+
+    try:
+        return (
+            registry.is_document_control_eligible(
+                source_document_id
+            )
+        )
+    except Exception:
+        return False
 
 
 def classify_relationship(
@@ -132,6 +147,7 @@ def build_constraints(
     query: str,
     ontology_context: OntologyContext,
     graph: Graph,
+    registry: DocumentRegistry | None = None,
 ) -> OntologyConstraintSet:
     """
     Discover explicit relationships among concepts mapped
@@ -152,6 +168,12 @@ def build_constraints(
         for concept
         in ontology_context.mapped_concepts
     ]
+
+    mapped_concept_names = {
+        concept.concept_name
+        for concept
+        in ontology_context.mapped_concepts
+    }
 
     relations = (
         find_relationships_between_concepts(
@@ -212,8 +234,8 @@ def build_constraints(
             object_uri,
         )
 
-        retrieval_eligible = (
-            is_constraint_retrieval_eligible(
+        control_eligible = (
+            is_constraint_control_eligible(
                 predicate_name=predicate_name,
                 source_document_id=(
                     provenance[
@@ -225,8 +247,26 @@ def build_constraints(
                         "assertion_status"
                     ]
                 ),
+                registry=registry,
             )
         )
+
+        applicability_concepts = (
+            provenance[
+                "applicability_concepts"
+            ]
+        )
+
+        if applicability_concepts:
+            control_eligible = (
+                control_eligible
+                and all(
+                    concept_name
+                    in mapped_concept_names
+                    for concept_name
+                    in applicability_concepts
+                )
+            )
 
         constraint = (
             OntologyConstraint(
@@ -278,8 +318,21 @@ def build_constraints(
                         "assertion_status"
                     ]
                 ),
-                retrieval_eligible=(
-                    retrieval_eligible
+                recommendation_priority=(
+                    provenance[
+                        "recommendation_priority"
+                    ]
+                ),
+                recommendation_condition=(
+                    provenance[
+                        "recommendation_condition"
+                    ]
+                ),
+                applicability_concepts=(
+                    applicability_concepts
+                ),
+                control_eligible=(
+                    control_eligible
                 ),
             )
         )
@@ -288,7 +341,7 @@ def build_constraints(
             constraint
         )
 
-        if constraint.retrieval_eligible:
+        if constraint.control_eligible:
             relationship_terms.append(
                 _relationship_term(
                     subject_label=(

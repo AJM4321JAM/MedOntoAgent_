@@ -23,6 +23,7 @@ from app.ingestion.metadata import (
     create_document_metadata,
 )
 from app.ingestion.registry import (
+    DEFAULT_REGISTRY_PATH,
     DocumentRegistry,
 )
 from app.models.documents import (
@@ -44,11 +45,6 @@ from app.retrieval.embeddings import (
 from app.retrieval.qdrant_client import (
     ensure_collection,
     upsert_chunks,
-)
-
-
-DEFAULT_REGISTRY_PATH = Path(
-    "data/processed/document_registry.json"
 )
 
 

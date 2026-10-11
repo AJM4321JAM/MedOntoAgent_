@@ -63,7 +63,7 @@ def _constraint_strings(
     for constraint in constraints:
         if not getattr(
             constraint,
-            "retrieval_eligible",
+            "control_eligible",
             False,
         ):
             continue

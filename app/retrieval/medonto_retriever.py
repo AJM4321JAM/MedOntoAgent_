@@ -4,6 +4,10 @@ from app.config.settings import (
     Settings,
     get_settings,
 )
+from app.ingestion.registry import (
+    DEFAULT_REGISTRY_PATH,
+    DocumentRegistry,
+)
 from app.models.medonto import (
     MedOntoRetrievalResult,
 )
@@ -85,7 +89,7 @@ def _eligible_constraints(
         constraint
         for constraint
         in constraint_set.constraints
-        if constraint.retrieval_eligible
+        if constraint.control_eligible
     ]
 
 
@@ -113,6 +117,24 @@ def _constraint_concept_names(
 
     return sorted(
         names
+    )
+
+
+def _constraint_source_document_ids(
+    constraint_set: OntologyConstraintSet,
+) -> list[str]:
+    """
+    Return exact provenance source IDs from control-eligible
+    ontology assertions.
+    """
+    return sorted(
+        {
+            constraint.source_document_id
+            for constraint in _eligible_constraints(
+                constraint_set
+            )
+            if constraint.source_document_id
+        }
     )
 
 
@@ -193,6 +215,12 @@ def retrieve_with_ontology_state(
             )
         )
 
+        source_document_ids = (
+            _constraint_source_document_ids(
+                constraint_set
+            )
+        )
+
         used_ontology_filter = bool(
             filter_concepts
         )
@@ -218,7 +246,10 @@ def retrieve_with_ontology_state(
                     vector=vector,
                     query_filter=(
                         ontology_concept_filter(
-                            filter_concepts
+                            filter_concepts,
+                            source_document_ids=(
+                                source_document_ids
+                            ),
                         )
                     ),
                 )
@@ -243,7 +274,11 @@ def retrieve_with_ontology_state(
                         settings=settings,
                         vector=vector,
                         query_filter=(
-                            approved_document_filter()
+                            approved_document_filter(
+                                source_document_ids=(
+                                    source_document_ids
+                                )
+                            )
                         ),
                     )
 
@@ -349,6 +384,10 @@ def retrieve_medonto(
         )
     )
 
+    registry = DocumentRegistry(
+        DEFAULT_REGISTRY_PATH
+    )
+
     constraint_set = (
         build_constraints(
             query=normalized_query,
@@ -356,6 +395,7 @@ def retrieve_medonto(
                 ontology_context
             ),
             graph=graph,
+            registry=registry,
         )
     )
 

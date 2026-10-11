@@ -155,6 +155,23 @@ med:assertionStatus
     rdfs:range xsd:string .
 
 
+med:recommendationPriority
+    a owl:DatatypeProperty ;
+    rdfs:label "recommendation priority" ;
+    rdfs:range xsd:integer .
+
+
+med:recommendationCondition
+    a owl:DatatypeProperty ;
+    rdfs:label "recommendation condition" ;
+    rdfs:range xsd:string .
+
+
+med:applicabilityConcept
+    a owl:ObjectProperty ;
+    rdfs:label "applicability concept" .
+
+
 #################################################################
 # Initial controlled concepts
 #################################################################
@@ -168,6 +185,7 @@ med:Hypertension
 med:Pregnancy
     a med:PatientGroup ;
     rdfs:label "Pregnancy" ;
+    skos:altLabel "pregnant" ;
     skos:altLabel "pregnant patient" ;
     skos:altLabel "pregnant patients" ;
     skos:altLabel "pregnant person" .
@@ -178,6 +196,141 @@ med:ExampleAntihypertensiveClass
     rdfs:label "Example Antihypertensive Class" ;
     skos:altLabel "example antihypertensive" ;
     skos:altLabel "example antihypertensive drug class" .
+
+
+#################################################################
+# Phase 28B controlled clinical concepts
+#################################################################
+
+med:ACEInhibitor
+    a med:DrugClass ;
+    rdfs:label "ACE inhibitor" ;
+    skos:altLabel "ACE inhibitors" ;
+    skos:altLabel "angiotensin-converting enzyme inhibitor" ;
+    skos:altLabel "angiotensin converting enzyme inhibitor" .
+
+
+med:AngiotensinReceptorBlocker
+    a med:DrugClass ;
+    rdfs:label "angiotensin II receptor blocker" ;
+    skos:altLabel "ARB" ;
+    skos:altLabel "ARBs" ;
+    skos:altLabel "angiotensin receptor blocker" ;
+    skos:altLabel "angiotensin receptor blockers" .
+
+
+med:Labetalol
+    a med:Drug ;
+    rdfs:label "labetalol" .
+
+
+med:Nifedipine
+    a med:Drug ;
+    rdfs:label "nifedipine" .
+
+
+med:Methyldopa
+    a med:Drug ;
+    rdfs:label "methyldopa" .
+
+
+med:ChronicHypertension
+    a med:Condition ;
+    rdfs:label "chronic hypertension" .
+
+
+med:GestationalHypertension
+    a med:Condition ;
+    rdfs:label "gestational hypertension" .
+
+
+#################################################################
+# Phase 28B NICE NG133 assertions
+#
+# These assertions are clinically intended for control only
+# when NICE-NG133 is present, APPROVED, and current in the
+# governed document registry.
+#################################################################
+
+med:ACEInhibitor
+    med:notRecommendedFor med:Pregnancy .
+
+med:AssertionNICEACEPregnancy
+    a med:OntologyAssertion ;
+    med:assertionSubject med:ACEInhibitor ;
+    med:assertionPredicate med:notRecommendedFor ;
+    med:assertionObject med:Pregnancy ;
+    med:sourceDocumentId "DOC-e943ba2bdc31" ;
+    med:sourceSection "Recommendation 1.3.2-1.3.3" ;
+    med:sourceVersion "NG133-2026-10-11-e943ba2bdc31" ;
+    med:assertionStatus "ACTIVE" .
+
+
+med:AngiotensinReceptorBlocker
+    med:notRecommendedFor med:Pregnancy .
+
+med:AssertionNICEARBPregnancy
+    a med:OntologyAssertion ;
+    med:assertionSubject med:AngiotensinReceptorBlocker ;
+    med:assertionPredicate med:notRecommendedFor ;
+    med:assertionObject med:Pregnancy ;
+    med:sourceDocumentId "DOC-e943ba2bdc31" ;
+    med:sourceSection "Recommendation 1.3.2-1.3.3" ;
+    med:sourceVersion "NG133-2026-10-11-e943ba2bdc31" ;
+    med:assertionStatus "ACTIVE" .
+
+
+#################################################################
+# NICE NG133 - Recommendation 1.3.10
+# Chronic hypertension in pregnancy
+#################################################################
+
+med:ChronicHypertension
+    med:treatedBy med:Labetalol ;
+    med:treatedBy med:Nifedipine ;
+    med:treatedBy med:Methyldopa .
+
+
+med:AssertionNICEChronicHTNLabetalol
+    a med:OntologyAssertion ;
+    med:assertionSubject med:ChronicHypertension ;
+    med:assertionPredicate med:treatedBy ;
+    med:assertionObject med:Labetalol ;
+    med:sourceDocumentId "DOC-e943ba2bdc31" ;
+    med:sourceSection "Recommendation 1.3.10" ;
+    med:sourceVersion "NG133-2026-10-11-e943ba2bdc31" ;
+    med:assertionStatus "ACTIVE" ;
+    med:applicabilityConcept med:Pregnancy ;
+    med:recommendationPriority 1 ;
+    med:recommendationCondition "For chronic hypertension in pregnant women" .
+
+
+med:AssertionNICEChronicHTNNifedipine
+    a med:OntologyAssertion ;
+    med:assertionSubject med:ChronicHypertension ;
+    med:assertionPredicate med:treatedBy ;
+    med:assertionObject med:Nifedipine ;
+    med:sourceDocumentId "DOC-e943ba2bdc31" ;
+    med:sourceSection "Recommendation 1.3.10" ;
+    med:sourceVersion "NG133-2026-10-11-e943ba2bdc31" ;
+    med:assertionStatus "ACTIVE" ;
+    med:applicabilityConcept med:Pregnancy ;
+    med:recommendationPriority 2 ;
+    med:recommendationCondition "If labetalol is not suitable" .
+
+
+med:AssertionNICEChronicHTNMethyldopa
+    a med:OntologyAssertion ;
+    med:assertionSubject med:ChronicHypertension ;
+    med:assertionPredicate med:treatedBy ;
+    med:assertionObject med:Methyldopa ;
+    med:sourceDocumentId "DOC-e943ba2bdc31" ;
+    med:sourceSection "Recommendation 1.3.10" ;
+    med:sourceVersion "NG133-2026-10-11-e943ba2bdc31" ;
+    med:assertionStatus "ACTIVE" ;
+    med:applicabilityConcept med:Pregnancy ;
+    med:recommendationPriority 3 ;
+    med:recommendationCondition "If both labetalol and nifedipine are not suitable" .
 
 
 #################################################################

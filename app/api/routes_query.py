@@ -125,7 +125,7 @@ def _build_public_constraints(
         constraint
         for constraint
         in constraint_set.constraints
-        if constraint.retrieval_eligible
+        if constraint.control_eligible
     ):
         public_constraints.append(
             PublicOntologyConstraint(

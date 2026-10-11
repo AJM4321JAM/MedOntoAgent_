@@ -22,8 +22,23 @@ def tag_chunk_with_ontology(
 
     No LLM is used.
     """
+    tag_text_parts = []
+
+    if chunk.section_title:
+        tag_text_parts.append(
+            chunk.section_title
+        )
+
+    tag_text_parts.append(
+        chunk.text
+    )
+
+    tag_text = "\n".join(
+        tag_text_parts
+    )
+
     matches = find_known_concepts_in_query(
-        query=chunk.text,
+        query=tag_text,
         graph=graph,
     )
 

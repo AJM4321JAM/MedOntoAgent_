@@ -71,7 +71,7 @@ def create_constraints(
                 assertion_status=(
                     "ACTIVE"
                 ),
-                retrieval_eligible=True,
+                control_eligible=True,
             )
         ]
 
@@ -253,3 +253,56 @@ def test_no_constraints_requires_no_llm_validation(
     )
 
     mock_judge.assert_not_called()
+
+def test_validator_receives_recommendation_qualifiers() -> None:
+    from unittest.mock import MagicMock, patch
+
+    constraint_set = create_constraints()
+
+    constraint_set.constraints[0] = (
+        constraint_set.constraints[0].model_copy(
+            update={
+                "recommendation_priority": 2,
+                "recommendation_condition": (
+                    "If the primary option is not suitable"
+                ),
+            }
+        )
+    )
+
+    with patch(
+        "app.validation.ontology_validator."
+        "_judge_constraint"
+    ) as mock_judge:
+        mock_judge.return_value = (
+            OntologyJudgeOutput(
+                verdict="COMPLIES",
+                reason="Synthetic test.",
+            )
+        )
+
+        validate_ontology_compliance(
+            draft=create_draft(),
+            constraint_set=constraint_set,
+            settings=create_settings(),
+        )
+
+        mock_judge.assert_called_once()
+
+        kwargs = (
+            mock_judge.call_args.kwargs
+        )
+
+        assert (
+            kwargs[
+                "recommendation_priority"
+            ]
+            == 2
+        )
+
+        assert (
+            kwargs[
+                "recommendation_condition"
+            ]
+            == "If the primary option is not suitable"
+        )

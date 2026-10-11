@@ -235,3 +235,154 @@ def test_new_version_can_supersede_old_version(
         active[0].document_id
         == new_metadata.document_id
     )
+
+def test_approved_document_is_control_eligible(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "approved-control.txt"
+
+    source.write_text(
+        "Approved control source.",
+        encoding="utf-8",
+    )
+
+    registry = DocumentRegistry(
+        tmp_path / "registry.json"
+    )
+
+    metadata = create_test_metadata(
+        source,
+        version="1",
+        approval_status=ApprovalStatus.APPROVED,
+    )
+
+    registry.register_document(
+        metadata
+    )
+
+    assert (
+        registry.is_document_control_eligible(
+            metadata.document_id
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "approval_status",
+    [
+        ApprovalStatus.PENDING,
+        ApprovalStatus.REJECTED,
+    ],
+)
+def test_nonapproved_document_is_not_control_eligible(
+    tmp_path: Path,
+    approval_status: ApprovalStatus,
+) -> None:
+    source = tmp_path / (
+        f"{approval_status.value.lower()}.txt"
+    )
+
+    source.write_text(
+        "Non-approved source.",
+        encoding="utf-8",
+    )
+
+    registry = DocumentRegistry(
+        tmp_path / "registry.json"
+    )
+
+    metadata = create_test_metadata(
+        source,
+        version="1",
+        approval_status=approval_status,
+    )
+
+    registry.register_document(
+        metadata
+    )
+
+    assert (
+        registry.is_document_control_eligible(
+            metadata.document_id
+        )
+        is False
+    )
+
+
+def test_superseded_document_is_not_control_eligible(
+    tmp_path: Path,
+) -> None:
+    old_file = tmp_path / "old-control.txt"
+    new_file = tmp_path / "new-control.txt"
+
+    old_file.write_text(
+        "Old approved control source.",
+        encoding="utf-8",
+    )
+
+    new_file.write_text(
+        "New approved control source.",
+        encoding="utf-8",
+    )
+
+    registry = DocumentRegistry(
+        tmp_path / "registry.json"
+    )
+
+    old_metadata = create_test_metadata(
+        old_file,
+        version="1",
+        approval_status=ApprovalStatus.APPROVED,
+    )
+
+    new_metadata = create_test_metadata(
+        new_file,
+        version="2",
+        approval_status=ApprovalStatus.APPROVED,
+    )
+
+    registry.register_document(
+        old_metadata
+    )
+    registry.register_document(
+        new_metadata
+    )
+
+    registry.mark_superseded(
+        old_document_id=(
+            old_metadata.document_id
+        ),
+        new_document_id=(
+            new_metadata.document_id
+        ),
+    )
+
+    assert (
+        registry.is_document_control_eligible(
+            old_metadata.document_id
+        )
+        is False
+    )
+
+    assert (
+        registry.is_document_control_eligible(
+            new_metadata.document_id
+        )
+        is True
+    )
+
+
+def test_unknown_document_is_not_control_eligible(
+    tmp_path: Path,
+) -> None:
+    registry = DocumentRegistry(
+        tmp_path / "registry.json"
+    )
+
+    assert (
+        registry.is_document_control_eligible(
+            "UNKNOWN-DOCUMENT"
+        )
+        is False
+    )

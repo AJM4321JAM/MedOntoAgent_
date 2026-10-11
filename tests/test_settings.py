@@ -12,6 +12,11 @@ def test_default_settings_are_valid() -> None:
     assert settings.app_env == "development"
     assert settings.aws_region == "ap-south-1"
     assert settings.qdrant_collection == "medontoagent_clinical_documents"
+
+    assert (
+        settings.qdrant_test_collection
+        == "medontoagent_test_documents"
+    )
     assert settings.retrieval_top_k == 5
     assert settings.max_chunk_words == 600
     assert settings.chunk_overlap_words == 80

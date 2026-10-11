@@ -31,6 +31,10 @@ class Settings(BaseSettings):
         "medontoagent_clinical_documents"
     )
 
+    qdrant_test_collection: str = (
+        "medontoagent_test_documents"
+    )
+
     qdrant_url: str | None = None
 
     qdrant_api_key: SecretStr | None = None
