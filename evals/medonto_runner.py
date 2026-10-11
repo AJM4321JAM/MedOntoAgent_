@@ -330,7 +330,7 @@ def run_medonto_dataset(
                             ),
                             system="MEDONTO",
                             execution_mode=(
-                                "BASELINE_FALLBACK"
+                                execution.execution_mode
                             ),
                             system_status="ERROR",
                             behavior_match=False,
@@ -348,8 +348,15 @@ def run_medonto_dataset(
                                 latency_ms
                             ),
                             error_message=(
-                                "Fallback failed: "
-                                f"{execution.fallback_error}"
+                                (
+                                    "Fallback baseline failed: "
+                                    if execution.execution_mode
+                                    == "BASELINE_FALLBACK"
+                                    else "Routed baseline failed: "
+                                )
+                                + str(
+                                    execution.fallback_error
+                                )
                             ),
                             fallback_reason=(
                                 execution.fallback_reason

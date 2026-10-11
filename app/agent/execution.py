@@ -139,10 +139,26 @@ def execute_medonto(
     )
 
     if orchestration_status == "BASELINE_ROUTED":
-        baseline_response = run_baseline_rag(
-            query,
-            settings=settings,
-        )
+        try:
+            baseline_response = run_baseline_rag(
+                query,
+                settings=settings,
+            )
+
+        except (
+            BaselineRAGError,
+            RetrievalError,
+            LLMServiceError,
+        ) as baseline_exc:
+            return MedOntoExecution(
+                execution_mode=(
+                    "BASELINE_ROUTED"
+                ),
+                baseline_response=None,
+                fallback_error=(
+                    type(baseline_exc).__name__
+                ),
+            )
 
         return MedOntoExecution(
             execution_mode=(
