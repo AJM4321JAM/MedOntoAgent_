@@ -47,6 +47,7 @@ EvaluationSystemStatus = Literal[
 ExecutionMode = Literal[
     "BASELINE",
     "MEDONTO",
+    "BASELINE_ROUTED",
     "BASELINE_FALLBACK",
 ]
 

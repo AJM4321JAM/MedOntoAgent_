@@ -545,3 +545,79 @@ def test_operational_failure_returns_baseline_fallback(
         "used_ontology_filter": False,
         "retrieval_relaxed": False,
     }
+
+
+
+@patch(
+    "app.api.routes_query."
+    "execute_medonto"
+)
+def test_nonontology_query_returns_baseline_routed(
+    mock_execute,
+) -> None:
+    retrieval = create_retrieval()
+    chunk = retrieval.retrieved_chunks[0]
+
+    mock_execute.return_value = (
+        MedOntoExecution(
+            execution_mode=(
+                "BASELINE_ROUTED"
+            ),
+            baseline_response=(
+                BaselineQueryResponse(
+                    query=(
+                        "Synthetic evidence question?"
+                    ),
+                    answer=(
+                        "Baseline routed answer."
+                    ),
+                    citations=[
+                        CitationReference(
+                            chunk_id=chunk.chunk_id,
+                        )
+                    ],
+                    citation_document_ids=[
+                        chunk.document_id,
+                    ],
+                    retrieved_chunk_ids=[
+                        chunk.chunk_id,
+                    ],
+                    retrieved_document_ids=[
+                        chunk.document_id,
+                    ],
+                    retrieved_contexts=[
+                        chunk.text,
+                    ],
+                    retrieved_chunks=[
+                        chunk,
+                    ],
+                    status="ANSWERED",
+                )
+            ),
+        )
+    )
+
+    response = client.post(
+        "/query",
+        json={
+            "query": (
+                "Synthetic evidence question?"
+            )
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert (
+        body["execution_mode"]
+        == "BASELINE_ROUTED"
+    )
+
+    assert body["status"] == "ANSWERED"
+
+    assert (
+        body["ontology_constraints"]
+        == []
+    )

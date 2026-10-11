@@ -195,3 +195,49 @@ def test_failed_baseline_fallback_is_auditable() -> None:
         result.fallback_error
         == "BaselineRAGError"
     )
+
+
+
+def test_baseline_routed_state_runs_baseline_without_failure_reason() -> None:
+    response = baseline_response()
+
+    with (
+        patch(
+            "app.agent.execution."
+            "medonto_graph.invoke",
+            return_value={
+                "orchestration_status": (
+                    "BASELINE_ROUTED"
+                ),
+            },
+        ),
+        patch(
+            "app.agent.execution."
+            "run_baseline_rag",
+            return_value=response,
+        ) as mock_baseline,
+    ):
+        result = execute_medonto(
+            "Synthetic question?"
+        )
+
+    assert (
+        result.execution_mode
+        == "BASELINE_ROUTED"
+    )
+
+    assert result.medonto_state is None
+
+    assert (
+        result.baseline_response
+        is response
+    )
+
+    assert result.fallback_reason is None
+
+    assert result.fallback_error is None
+
+    mock_baseline.assert_called_once_with(
+        "Synthetic question?",
+        settings=None,
+    )

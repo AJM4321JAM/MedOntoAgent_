@@ -752,3 +752,72 @@ def test_medonto_runner_records_failed_baseline_fallback() -> None:
         result.error_message
         == "Fallback failed: BaselineRAGError"
     )
+
+
+
+def test_medonto_runner_records_baseline_routed() -> None:
+    response = BaselineQueryResponse(
+        query=(
+            "Can Example "
+            "Antihypertensive Class "
+            "be used during pregnancy?"
+        ),
+        answer="Synthetic routed answer.",
+        citations=[
+            CitationReference(
+                chunk_id=(
+                    "DOC-TEST-CHUNK-0000"
+                )
+            )
+        ],
+        citation_document_ids=[
+            "DOC-TEST"
+        ],
+        retrieved_chunk_ids=[
+            "DOC-TEST-CHUNK-0000"
+        ],
+        retrieved_document_ids=[
+            "DOC-TEST"
+        ],
+        retrieved_contexts=[
+            "Synthetic retrieved context."
+        ],
+        status="ANSWERED",
+    )
+
+    execution = MedOntoExecution(
+        execution_mode="BASELINE_ROUTED",
+        baseline_response=response,
+    )
+
+    with patch(
+        "evals.medonto_runner."
+        "execute_medonto",
+        return_value=execution,
+    ):
+        artifact = (
+            run_medonto_dataset(
+                one_question_dataset(),
+                settings=settings(),
+            )
+        )
+
+    result = artifact.results[0]
+
+    assert (
+        result.execution_mode
+        == "BASELINE_ROUTED"
+    )
+
+    assert (
+        result.system_status
+        == "ANSWERED"
+    )
+
+    assert (
+        result.behavior_match
+        is True
+    )
+
+    assert result.fallback_reason is None
+    assert result.fallback_error is None

@@ -305,10 +305,10 @@ def run_medonto_dataset(
                 * 1000.0
             )
 
-            if (
-                execution.execution_mode
-                == "BASELINE_FALLBACK"
-            ):
+            if execution.execution_mode in {
+                "BASELINE_ROUTED",
+                "BASELINE_FALLBACK",
+            }:
                 baseline_response = (
                     execution.baseline_response
                 )
@@ -386,7 +386,7 @@ def run_medonto_dataset(
                         ),
                         system="MEDONTO",
                         execution_mode=(
-                            "BASELINE_FALLBACK"
+                            execution.execution_mode
                         ),
                         system_status=(
                             system_status

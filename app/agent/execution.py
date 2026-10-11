@@ -33,6 +33,7 @@ from app.validation.ontology_validator import (
 
 ExecutionMode = Literal[
     "MEDONTO",
+    "BASELINE_ROUTED",
     "BASELINE_FALLBACK",
 ]
 
@@ -131,6 +132,25 @@ def execute_medonto(
                 fallback_reason
             ),
             fallback_error=None,
+        )
+
+    orchestration_status = state.get(
+        "orchestration_status"
+    )
+
+    if orchestration_status == "BASELINE_ROUTED":
+        baseline_response = run_baseline_rag(
+            query,
+            settings=settings,
+        )
+
+        return MedOntoExecution(
+            execution_mode=(
+                "BASELINE_ROUTED"
+            ),
+            baseline_response=(
+                baseline_response
+            ),
         )
 
     return MedOntoExecution(

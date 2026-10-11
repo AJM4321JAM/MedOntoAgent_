@@ -1,3 +1,5 @@
+from typing import Literal
+
 import logging
 import time
 
@@ -272,6 +274,10 @@ def _build_fallback_public_response(
     *,
     query: str,
     baseline_response: BaselineQueryResponse,
+    execution_mode: Literal[
+        "BASELINE_ROUTED",
+        "BASELINE_FALLBACK",
+    ],
 ) -> MedOntoQueryResponse:
     """
     Convert a conventional baseline fallback into the public
@@ -327,7 +333,7 @@ def _build_fallback_public_response(
         answer=baseline_response.answer,
         status=baseline_response.status,
         execution_mode=(
-            "BASELINE_FALLBACK"
+            execution_mode
         ),
         citations=citations,
         ontology_constraints=[],
@@ -542,6 +548,9 @@ def query_medontoagent(
                         query=request.query,
                         baseline_response=(
                             baseline_response
+                        ),
+                        execution_mode=(
+                            execution.execution_mode
                         ),
                     )
                 )

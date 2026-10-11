@@ -237,6 +237,7 @@ class MedOntoQueryResponse(BaseModel):
 
     execution_mode: Literal[
         "MEDONTO",
+        "BASELINE_ROUTED",
         "BASELINE_FALLBACK",
     ] = "MEDONTO"
 
