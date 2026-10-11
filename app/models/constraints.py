@@ -65,6 +65,8 @@ class OntologyConstraint(BaseModel):
 
     assertion_status: str | None = None
 
+    retrieval_eligible: bool = False
+
 
 class RetrievalHints(BaseModel):
     """

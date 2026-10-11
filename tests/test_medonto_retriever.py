@@ -16,6 +16,7 @@ from app.models.ontology import (
     OntologyContext,
 )
 from app.retrieval.medonto_retriever import (
+    _constraint_concept_names,
     retrieve_medonto,
 )
 
@@ -114,15 +115,16 @@ def create_constraint_set() -> OntologyConstraintSet:
                     "ontology/Pregnancy"
                 ),
                 source_document_id=(
-                    "SYNTHETIC-ONTOLOGY-TEST"
+                    "DOC-ACTIVE-TEST"
                 ),
                 source_section=(
                     "Implementation Test"
                 ),
                 source_version="1.0",
                 assertion_status=(
-                    "SYNTHETIC_TEST_ONLY"
+                    "ACTIVE"
                 ),
+                retrieval_eligible=True,
             )
         ],
         retrieval_hints=RetrievalHints(
@@ -545,4 +547,60 @@ def test_original_query_is_preserved_in_result(
     assert (
         result.retrieval.query
         != ""
+    )
+
+def test_ineligible_constraint_does_not_create_filter() -> None:
+    constraint = OntologyConstraint(
+        constraint_type="CONTRAINDICATION",
+        subject_name=(
+            "ExampleAntihypertensiveClass"
+        ),
+        subject_label=(
+            "Example Antihypertensive Class"
+        ),
+        subject_uri=(
+            "https://medontoagent.example.org/"
+            "ontology/"
+            "ExampleAntihypertensiveClass"
+        ),
+        predicate_name="contraindicatedIn",
+        predicate_label="contraindicated in",
+        predicate_uri=(
+            "https://medontoagent.example.org/"
+            "ontology/contraindicatedIn"
+        ),
+        object_name="Pregnancy",
+        object_label="Pregnancy",
+        object_uri=(
+            "https://medontoagent.example.org/"
+            "ontology/Pregnancy"
+        ),
+        source_document_id=(
+            "SYNTHETIC-ONTOLOGY-TEST"
+        ),
+        assertion_status=(
+            "SYNTHETIC_TEST_ONLY"
+        ),
+        retrieval_eligible=False,
+    )
+
+    constraint_set = OntologyConstraintSet(
+        query="test",
+        constraints=[
+            constraint
+        ],
+        retrieval_hints=RetrievalHints(
+            concept_names=[],
+            concept_labels=[],
+            relationship_terms=[],
+            expanded_query="test",
+        ),
+        constraint_count=1,
+    )
+
+    assert (
+        _constraint_concept_names(
+            constraint_set
+        )
+        == []
     )

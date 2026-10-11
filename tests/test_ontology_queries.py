@@ -2,8 +2,10 @@ from app.ontology.ontology_loader import (
     load_ontology,
 )
 from app.ontology.ontology_queries import (
+    MED,
     concept_exists,
     find_relationships_between_concepts,
+    get_assertion_provenance,
     get_provenance,
     get_relationships_for_subject,
     relationship_exists,
@@ -125,14 +127,14 @@ def test_unknown_subject_returns_no_relationships() -> None:
     assert relationships == []
 
 
-def test_synthetic_provenance_is_available() -> None:
+def test_synthetic_assertion_has_exact_provenance() -> None:
     graph = load_ontology()
 
-    provenance = get_provenance(
+    provenance = get_assertion_provenance(
         graph,
-        subject_name=(
-            "ExampleAntihypertensiveClass"
-        ),
+        MED.ExampleAntihypertensiveClass,
+        MED.contraindicatedIn,
+        MED.Pregnancy,
     )
 
     assert (
@@ -162,6 +164,71 @@ def test_synthetic_provenance_is_available() -> None:
         ]
         == "SYNTHETIC_TEST_ONLY"
     )
+
+
+def test_ambiguous_assertion_provenance_fails_closed() -> None:
+    from rdflib import Literal, RDF
+
+    graph = load_ontology()
+
+    duplicate = MED.DuplicateTestAssertion
+
+    graph.add(
+        (
+            duplicate,
+            RDF.type,
+            MED.OntologyAssertion,
+        )
+    )
+    graph.add(
+        (
+            duplicate,
+            MED.assertionSubject,
+            MED.ExampleAntihypertensiveClass,
+        )
+    )
+    graph.add(
+        (
+            duplicate,
+            MED.assertionPredicate,
+            MED.contraindicatedIn,
+        )
+    )
+    graph.add(
+        (
+            duplicate,
+            MED.assertionObject,
+            MED.Pregnancy,
+        )
+    )
+    graph.add(
+        (
+            duplicate,
+            MED.sourceDocumentId,
+            Literal("DOC-DUPLICATE"),
+        )
+    )
+    graph.add(
+        (
+            duplicate,
+            MED.assertionStatus,
+            Literal("ACTIVE"),
+        )
+    )
+
+    provenance = get_assertion_provenance(
+        graph,
+        MED.ExampleAntihypertensiveClass,
+        MED.contraindicatedIn,
+        MED.Pregnancy,
+    )
+
+    assert provenance == {
+        "source_document_id": None,
+        "source_section": None,
+        "source_version": None,
+        "assertion_status": None,
+    }
 
 
 def test_known_condition_exists() -> None:

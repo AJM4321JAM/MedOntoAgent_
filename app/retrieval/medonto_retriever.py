@@ -74,31 +74,45 @@ def _convert_points(
     return results
 
 
+def _eligible_constraints(
+    constraint_set: OntologyConstraintSet,
+):
+    """
+    Return only ontology assertions permitted to control
+    retrieval and generation behavior.
+    """
+    return [
+        constraint
+        for constraint
+        in constraint_set.constraints
+        if constraint.retrieval_eligible
+    ]
+
+
 def _constraint_concept_names(
     constraint_set: OntologyConstraintSet,
 ) -> list[str]:
     """
-    Return only concepts participating in explicit ontology
-    constraints.
+    Return concepts participating only in control-eligible
+    ontology constraints.
 
-    Merely mapped concepts do not become strict filters.
+    Diagnostic or synthetic constraints must not create
+    metadata retrieval filters.
     """
-    names: list[str] = []
+    names: set[str] = set()
 
-    for constraint in (
-        constraint_set.constraints
+    for constraint in _eligible_constraints(
+        constraint_set
     ):
-        names.extend(
-            [
-                constraint.subject_name,
-                constraint.object_name,
-            ]
+        names.add(
+            constraint.subject_name
+        )
+        names.add(
+            constraint.object_name
         )
 
-    return list(
-        dict.fromkeys(
-            names
-        )
+    return sorted(
+        names
     )
 
 

@@ -70,22 +70,43 @@ def format_medonto_evidence(
     )
 
 
+def get_control_constraints(
+    constraint_set: OntologyConstraintSet,
+):
+    """
+    Return only ontology constraints permitted to control
+    generation behavior.
+    """
+    return [
+        constraint
+        for constraint
+        in constraint_set.constraints
+        if constraint.retrieval_eligible
+    ]
+
+
 def format_ontology_constraints(
     constraint_set: OntologyConstraintSet,
 ) -> str:
     """
     Format application-generated RDF constraints for the model.
     """
-    if not constraint_set.constraints:
+    control_constraints = (
+        get_control_constraints(
+            constraint_set
+        )
+    )
+
+    if not control_constraints:
         return (
-            "No explicit ontology constraints "
+            "No control-eligible ontology constraints "
             "were identified for this query."
         )
 
     sections: list[str] = []
 
     for constraint in (
-        constraint_set.constraints
+        control_constraints
     ):
         sections.append(
             "\n".join(
@@ -144,7 +165,9 @@ def _expected_constraint_keys(
             constraint.object_name,
         )
         for constraint
-        in constraint_set.constraints
+        in get_control_constraints(
+            constraint_set
+        )
     }
 
 
@@ -319,7 +342,9 @@ def _deterministic_abstention(
             ),
         )
         for constraint
-        in constraint_set.constraints
+        in get_control_constraints(
+            constraint_set
+        )
     ]
 
     return MedOntoDraftOutput(

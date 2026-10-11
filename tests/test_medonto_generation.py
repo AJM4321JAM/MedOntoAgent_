@@ -12,6 +12,7 @@ from app.llm.medonto_generation import (
     MedOntoGenerationError,
     format_medonto_evidence,
     format_ontology_constraints,
+    get_control_constraints,
     generate_medonto_draft,
     validate_draft_references,
 )
@@ -116,15 +117,16 @@ def create_constraint_set() -> OntologyConstraintSet:
             "ontology/Pregnancy"
         ),
         source_document_id=(
-            "SYNTHETIC-ONTOLOGY-TEST"
+            "DOC-ACTIVE-TEST"
         ),
         source_section=(
             "Implementation Test"
         ),
         source_version="1.0",
         assertion_status=(
-            "SYNTHETIC_TEST_ONLY"
+            "ACTIVE"
         ),
+        retrieval_eligible=True,
     )
 
     return OntologyConstraintSet(
@@ -400,4 +402,107 @@ def test_retrieved_instruction_is_marked_untrusted() -> None:
     assert (
         "</UNTRUSTED_RETRIEVED_EVIDENCE>"
         in formatted
+    )
+
+
+def test_synthetic_constraint_not_sent_as_generation_control() -> None:
+    active_set = create_constraint_set()
+
+    synthetic_constraint = (
+        active_set.constraints[0]
+        .model_copy(
+            update={
+                "source_document_id": (
+                    "SYNTHETIC-ONTOLOGY-TEST"
+                ),
+                "assertion_status": (
+                    "SYNTHETIC_TEST_ONLY"
+                ),
+                "retrieval_eligible": False,
+            }
+        )
+    )
+
+    synthetic_set = (
+        active_set.model_copy(
+            update={
+                "constraints": [
+                    synthetic_constraint
+                ],
+                "constraint_count": 1,
+            }
+        )
+    )
+
+    controls = get_control_constraints(
+        synthetic_set
+    )
+
+    assert controls == []
+
+    formatted = format_ontology_constraints(
+        synthetic_set
+    )
+
+    assert (
+        "contraindicatedIn"
+        not in formatted
+    )
+
+    assert (
+        "No control-eligible ontology constraints"
+        in formatted
+    )
+
+
+def test_synthetic_constraint_not_expected_in_considered_constraints() -> None:
+    active_set = create_constraint_set()
+
+    synthetic_constraint = (
+        active_set.constraints[0]
+        .model_copy(
+            update={
+                "source_document_id": (
+                    "SYNTHETIC-ONTOLOGY-TEST"
+                ),
+                "assertion_status": (
+                    "SYNTHETIC_TEST_ONLY"
+                ),
+                "retrieval_eligible": False,
+            }
+        )
+    )
+
+    synthetic_set = (
+        active_set.model_copy(
+            update={
+                "constraints": [
+                    synthetic_constraint
+                ],
+                "constraint_count": 1,
+            }
+        )
+    )
+
+    draft = MedOntoDraftOutput(
+        answer="Synthetic grounded answer.",
+        claims=[
+            MedOntoClaim(
+                claim_text=(
+                    "The retrieved evidence contains "
+                    "a synthetic statement."
+                ),
+                citation_chunk_ids=[
+                    "DOC-test-CHUNK-0000"
+                ],
+            )
+        ],
+        considered_constraints=[],
+        status="DRAFT",
+    )
+
+    validate_draft_references(
+        draft=draft,
+        retrieval=create_retrieval(),
+        constraint_set=synthetic_set,
     )

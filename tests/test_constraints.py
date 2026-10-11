@@ -1,3 +1,7 @@
+from rdflib import (
+    Literal,
+)
+
 from app.models.ontology import (
     MappedOntologyConcept,
     OntologyContext,
@@ -5,9 +9,13 @@ from app.models.ontology import (
 from app.ontology.constraints import (
     build_constraints,
     classify_relationship,
+    is_constraint_retrieval_eligible,
 )
 from app.ontology.ontology_loader import (
     load_ontology,
+)
+from app.ontology.ontology_queries import (
+    MED,
 )
 
 
@@ -175,7 +183,7 @@ def test_constraint_retains_provenance() -> None:
     )
 
 
-def test_retrieval_hints_include_relationship() -> None:
+def test_synthetic_relationship_does_not_expand_query() -> None:
     graph = load_ontology()
 
     context = (
@@ -189,14 +197,18 @@ def test_retrieval_hints_include_relationship() -> None:
     )
 
     assert (
-        "Example Antihypertensive Class "
-        "contraindicated in Pregnancy"
-        in result.retrieval_hints.relationship_terms
+        result.constraint_count
+        == 1
     )
 
     assert (
-        "Ontology relationship context:"
-        in result.retrieval_hints.expanded_query
+        result.retrieval_hints.relationship_terms
+        == []
+    )
+
+    assert (
+        result.retrieval_hints.expanded_query
+        == context.query
     )
 
 
@@ -274,4 +286,119 @@ def test_no_relation_produces_no_constraint() -> None:
     assert (
         result.retrieval_hints.expanded_query
         == context.query
+    )
+
+def test_synthetic_constraint_is_not_retrieval_eligible() -> None:
+    graph = load_ontology()
+
+    context = create_constraint_context()
+
+    result = build_constraints(
+        query=context.query,
+        ontology_context=context,
+        graph=graph,
+    )
+
+    matching = [
+        constraint
+        for constraint
+        in result.constraints
+        if (
+            constraint.predicate_name
+            == "contraindicatedIn"
+        )
+    ]
+
+    assert matching
+
+    assert (
+        matching[0].assertion_status
+        == "SYNTHETIC_TEST_ONLY"
+    )
+
+    assert (
+        matching[0].retrieval_eligible
+        is False
+    )
+
+
+def test_active_provenanced_constraint_is_eligible() -> None:
+    graph = load_ontology()
+
+    assertion = (
+        MED.AssertionExampleContraindication
+    )
+
+    graph.remove(
+        (
+            assertion,
+            MED.assertionStatus,
+            None,
+        )
+    )
+
+    graph.add(
+        (
+            assertion,
+            MED.assertionStatus,
+            Literal("ACTIVE"),
+        )
+    )
+
+    context = create_constraint_context()
+
+    result = build_constraints(
+        query=context.query,
+        ontology_context=context,
+        graph=graph,
+    )
+
+    matching = [
+        constraint
+        for constraint
+        in result.constraints
+        if (
+            constraint.predicate_name
+            == "contraindicatedIn"
+        )
+    ]
+
+    assert matching
+
+    assert (
+        matching[0].assertion_status
+        == "ACTIVE"
+    )
+
+    assert (
+        matching[0].retrieval_eligible
+        is True
+    )
+
+
+def test_unknown_predicate_is_not_control_eligible() -> None:
+    assert (
+        is_constraint_retrieval_eligible(
+            predicate_name=(
+                "someArbitraryRelation"
+            ),
+            source_document_id=(
+                "DOC-TEST"
+            ),
+            assertion_status="ACTIVE",
+        )
+        is False
+    )
+
+
+def test_missing_source_document_id_is_not_control_eligible() -> None:
+    assert (
+        is_constraint_retrieval_eligible(
+            predicate_name=(
+                "contraindicatedIn"
+            ),
+            source_document_id=None,
+            assertion_status="ACTIVE",
+        )
+        is False
     )

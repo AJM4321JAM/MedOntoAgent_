@@ -11,7 +11,7 @@ from app.models.ontology import (
 )
 from app.ontology.ontology_queries import (
     find_relationships_between_concepts,
-    get_provenance,
+    get_assertion_provenance,
     ontology_concept_name,
     ontology_predicate_name,
 )
@@ -37,6 +37,40 @@ RELATIONSHIP_TYPES: dict[
         "INVESTIGATION_REQUIREMENT"
     ),
 }
+
+
+ENFORCEABLE_PREDICATES = {
+    "contraindicatedIn",
+    "notRecommendedFor",
+    "recommendedFor",
+    "treatedBy",
+    "requiresInvestigation",
+}
+
+
+def is_constraint_retrieval_eligible(
+    *,
+    predicate_name: str,
+    source_document_id: str | None,
+    assertion_status: str | None,
+) -> bool:
+    """
+    Return whether an ontology assertion may technically
+    control retrieval and generation.
+
+    Phase 28B will additionally require the referenced
+    document to be approved/current in the source registry.
+    """
+    if predicate_name not in ENFORCEABLE_PREDICATES:
+        return False
+
+    if assertion_status != "ACTIVE":
+        return False
+
+    if not source_document_id:
+        return False
+
+    return True
 
 
 def classify_relationship(
@@ -159,9 +193,39 @@ def build_constraints(
             )
         )
 
-        provenance = get_provenance(
+        subject_uri = URIRef(
+            relation.subject_uri
+        )
+
+        predicate_uri = URIRef(
+            relation.predicate_uri
+        )
+
+        object_uri = URIRef(
+            relation.object_uri
+        )
+
+        provenance = get_assertion_provenance(
             graph,
-            subject_name=subject_name,
+            subject_uri,
+            predicate_uri,
+            object_uri,
+        )
+
+        retrieval_eligible = (
+            is_constraint_retrieval_eligible(
+                predicate_name=predicate_name,
+                source_document_id=(
+                    provenance[
+                        "source_document_id"
+                    ]
+                ),
+                assertion_status=(
+                    provenance[
+                        "assertion_status"
+                    ]
+                ),
+            )
         )
 
         constraint = (
@@ -214,6 +278,9 @@ def build_constraints(
                         "assertion_status"
                     ]
                 ),
+                retrieval_eligible=(
+                    retrieval_eligible
+                ),
             )
         )
 
@@ -221,19 +288,20 @@ def build_constraints(
             constraint
         )
 
-        relationship_terms.append(
-            _relationship_term(
-                subject_label=(
-                    relation.subject_label
-                ),
-                predicate_label=(
-                    relation.predicate_label
-                ),
-                object_label=(
-                    relation.object_label
-                ),
+        if constraint.retrieval_eligible:
+            relationship_terms.append(
+                _relationship_term(
+                    subject_label=(
+                        relation.subject_label
+                    ),
+                    predicate_label=(
+                        relation.predicate_label
+                    ),
+                    object_label=(
+                        relation.object_label
+                    ),
+                )
             )
-        )
 
     concept_names = (
         _deduplicate_preserving_order(

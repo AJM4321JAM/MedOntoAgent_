@@ -115,6 +115,22 @@ med:supportedByGuideline
 # Provenance properties
 #################################################################
 
+med:OntologyAssertion
+    a owl:Class ;
+    rdfs:label "Ontology Assertion" .
+
+med:assertionSubject
+    a owl:ObjectProperty ;
+    rdfs:label "assertion subject" .
+
+med:assertionPredicate
+    a owl:ObjectProperty ;
+    rdfs:label "assertion predicate" .
+
+med:assertionObject
+    a owl:ObjectProperty ;
+    rdfs:label "assertion object" .
+
 med:sourceDocumentId
     a owl:DatatypeProperty ;
     rdfs:label "source document ID" ;
@@ -172,7 +188,13 @@ med:ExampleAntihypertensiveClass
 #################################################################
 
 med:ExampleAntihypertensiveClass
-    med:contraindicatedIn med:Pregnancy ;
+    med:contraindicatedIn med:Pregnancy .
+
+med:AssertionExampleContraindication
+    a med:OntologyAssertion ;
+    med:assertionSubject med:ExampleAntihypertensiveClass ;
+    med:assertionPredicate med:contraindicatedIn ;
+    med:assertionObject med:Pregnancy ;
     med:sourceDocumentId "SYNTHETIC-ONTOLOGY-TEST" ;
     med:sourceSection "Implementation Test" ;
     med:sourceVersion "1.0" ;

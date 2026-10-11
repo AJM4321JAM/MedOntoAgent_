@@ -122,7 +122,10 @@ def _build_public_constraints(
     ] = []
 
     for constraint in (
-        constraint_set.constraints
+        constraint
+        for constraint
+        in constraint_set.constraints
+        if constraint.retrieval_eligible
     ):
         public_constraints.append(
             PublicOntologyConstraint(

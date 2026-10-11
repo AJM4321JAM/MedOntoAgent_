@@ -250,6 +250,7 @@ def test_medonto_runner_records_graph_metadata() -> None:
             "contraindicatedIn"
         ),
         object_name="Pregnancy",
+        retrieval_eligible=True,
     )
 
     constraint_set = SimpleNamespace(

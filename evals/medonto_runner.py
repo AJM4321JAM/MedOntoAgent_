@@ -61,6 +61,13 @@ def _constraint_strings(
     results: list[str] = []
 
     for constraint in constraints:
+        if not getattr(
+            constraint,
+            "retrieval_eligible",
+            False,
+        ):
+            continue
+
         subject = getattr(
             constraint,
             "subject_name",

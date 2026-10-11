@@ -437,3 +437,51 @@ def test_build_context_fallback_does_not_invent_unknown_concepts(
         context.unknown_count
         == 0
     )
+def test_lexicon_contains_clinical_instances_only() -> None:
+    graph = load_ontology()
+
+    lexicon = build_ontology_lexicon(
+        graph
+    )
+
+    uris = {
+        str(uri)
+        for uri in lexicon.values()
+    }
+
+    assert any(
+        uri.endswith("/Pregnancy")
+        for uri in uris
+    )
+
+    assert any(
+        uri.endswith(
+            "/ExampleAntihypertensiveClass"
+        )
+        for uri in uris
+    )
+
+    assert not any(
+        uri.endswith("/ClinicalConcept")
+        for uri in uris
+    )
+
+    assert not any(
+        uri.endswith("/contraindicatedIn")
+        for uri in uris
+    )
+
+    assert not any(
+        uri.endswith("/sourceDocumentId")
+        for uri in uris
+    )
+
+    assert not any(
+        uri.endswith("/OntologyAssertion")
+        for uri in uris
+    )
+
+    assert not any(
+        uri.endswith("/assertionSubject")
+        for uri in uris
+    )

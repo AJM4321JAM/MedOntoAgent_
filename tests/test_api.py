@@ -76,6 +76,7 @@ def create_constraint_set():
             "contraindicatedIn"
         ),
         object_name="GroupY",
+        retrieval_eligible=True,
     )
 
     return SimpleNamespace(

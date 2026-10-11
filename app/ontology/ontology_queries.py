@@ -264,6 +264,112 @@ def get_provenance(
     }
 
 
+def _literal_text(
+    value,
+) -> str | None:
+    """
+    Convert one RDF literal-like value to text.
+    """
+    if value is None:
+        return None
+
+    return str(
+        value
+    )
+
+
+def get_assertion_provenance(
+    graph: Graph,
+    subject_uri: URIRef,
+    predicate_uri: URIRef,
+    object_uri: URIRef,
+) -> dict[str, str | None]:
+    """
+    Return provenance for one exact ontology assertion.
+
+    Provenance is considered usable only when exactly one
+    OntologyAssertion describes the requested triple.
+
+    Missing or ambiguous provenance fails closed.
+    """
+    matches = []
+
+    for assertion in graph.subjects(
+        RDF.type,
+        MED.OntologyAssertion,
+    ):
+        if (
+            (
+                assertion,
+                MED.assertionSubject,
+                subject_uri,
+            )
+            not in graph
+        ):
+            continue
+
+        if (
+            (
+                assertion,
+                MED.assertionPredicate,
+                predicate_uri,
+            )
+            not in graph
+        ):
+            continue
+
+        if (
+            (
+                assertion,
+                MED.assertionObject,
+                object_uri,
+            )
+            not in graph
+        ):
+            continue
+
+        matches.append(
+            assertion
+        )
+
+    if len(matches) != 1:
+        return {
+            "source_document_id": None,
+            "source_section": None,
+            "source_version": None,
+            "assertion_status": None,
+        }
+
+    assertion = matches[0]
+
+    return {
+        "source_document_id": _literal_text(
+            graph.value(
+                assertion,
+                MED.sourceDocumentId,
+            )
+        ),
+        "source_section": _literal_text(
+            graph.value(
+                assertion,
+                MED.sourceSection,
+            )
+        ),
+        "source_version": _literal_text(
+            graph.value(
+                assertion,
+                MED.sourceVersion,
+            )
+        ),
+        "assertion_status": _literal_text(
+            graph.value(
+                assertion,
+                MED.assertionStatus,
+            )
+        ),
+    }
+
+
 def ontology_predicate_name(
     predicate_uri: URIRef,
 ) -> str:

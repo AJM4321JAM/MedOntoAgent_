@@ -64,13 +64,14 @@ def create_constraints(
                     "GroupY"
                 ),
                 source_document_id=(
-                    "SYNTHETIC-TEST"
+                    "DOC-ACTIVE-TEST"
                 ),
                 source_section="Test",
                 source_version="1.0",
                 assertion_status=(
-                    "SYNTHETIC_TEST_ONLY"
+                    "ACTIVE"
                 ),
+                retrieval_eligible=True,
             )
         ]
 

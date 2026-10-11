@@ -234,7 +234,14 @@ def validate_ontology_compliance(
             has_conflict=False,
         )
 
-    if not constraint_set.constraints:
+    eligible = [
+        constraint
+        for constraint
+        in constraint_set.constraints
+        if constraint.retrieval_eligible
+    ]
+
+    if not eligible:
         return OntologyValidationResult(
             items=[],
             has_conflict=False,
@@ -251,7 +258,7 @@ def validate_ontology_compliance(
     ] = []
 
     for index, constraint in enumerate(
-        constraint_set.constraints
+        eligible
     ):
         with observed_span(
             "llm.ontology_validation",

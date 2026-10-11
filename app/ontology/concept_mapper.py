@@ -46,17 +46,6 @@ class ConceptMappingError(RuntimeError):
     """
 
 
-CLINICAL_CONCEPT_TYPES: set[URIRef] = {
-    MED.Condition,
-    MED.Treatment,
-    MED.Drug,
-    MED.DrugClass,
-    MED.PatientGroup,
-    MED.Investigation,
-    MED.Guideline,
-}
-
-
 def normalize_concept_text(
     text: str,
 ) -> str:
@@ -145,31 +134,74 @@ def _canonical_label(
     )
 
 
-def _is_controlled_clinical_concept(
+def _is_subclass_of_clinical_concept(
+    graph: Graph,
+    class_uri: URIRef,
+) -> bool:
+    """
+    Return True when class_uri is ClinicalConcept itself or
+    transitively descends from ClinicalConcept.
+    """
+    visited: set[URIRef] = set()
+    stack = [
+        class_uri
+    ]
+
+    while stack:
+        current = stack.pop()
+
+        if current == MED.ClinicalConcept:
+            return True
+
+        if current in visited:
+            continue
+
+        visited.add(
+            current
+        )
+
+        for parent in graph.objects(
+            current,
+            RDFS.subClassOf,
+        ):
+            if isinstance(
+                parent,
+                URIRef,
+            ):
+                stack.append(
+                    parent
+                )
+
+    return False
+
+
+def is_clinical_concept_instance(
     graph: Graph,
     uri: URIRef,
 ) -> bool:
     """
-    Return True when a resource is typed as one of the
-    controlled clinical concept classes.
-    """
-    concept_types = {
-        object_value
-        for object_value
-        in graph.objects(
-            uri,
-            RDF.type,
-        )
-        if isinstance(
-            object_value,
-            URIRef,
-        )
-    }
+    Return True only for instances whose RDF type is a
+    ClinicalConcept class or one of its subclasses.
 
-    return bool(
-        concept_types
-        & CLINICAL_CONCEPT_TYPES
-    )
+    Schema classes and properties are therefore excluded.
+    """
+    for class_uri in graph.objects(
+        uri,
+        RDF.type,
+    ):
+        if (
+            isinstance(
+                class_uri,
+                URIRef,
+            )
+            and _is_subclass_of_clinical_concept(
+                graph,
+                class_uri,
+            )
+        ):
+            return True
+
+    return False
 
 
 def build_ontology_lexicon(
@@ -206,7 +238,7 @@ def build_ontology_lexicon(
         ):
             continue
 
-        if _is_controlled_clinical_concept(
+        if is_clinical_concept_instance(
             graph,
             subject,
         ):
