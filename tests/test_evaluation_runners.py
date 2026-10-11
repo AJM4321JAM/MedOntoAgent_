@@ -458,6 +458,8 @@ def test_runner_error_is_safe_and_does_not_store_private_detail() -> None:
         not in result.error_message
     )
 
+    assert result.error_category == "OTHER_ERROR"
+
 
 def test_run_artifact_can_be_persisted(
     tmp_path: Path,
@@ -702,6 +704,8 @@ def test_medonto_runner_records_failed_baseline_fallback() -> None:
         fallback_error=(
             "BaselineRAGError"
         ),
+        error_category="RATE_LIMIT",
+        medonto_error_category="GENERATION_ERROR",
     )
 
     with patch(
@@ -752,6 +756,9 @@ def test_medonto_runner_records_failed_baseline_fallback() -> None:
         result.error_message
         == "Fallback baseline failed: BaselineRAGError"
     )
+
+    assert result.error_category == "RATE_LIMIT"
+    assert result.medonto_error_category == "GENERATION_ERROR"
 
 
 
@@ -834,6 +841,7 @@ def test_medonto_runner_records_failed_routed_baseline() -> None:
         fallback_error=(
             "BaselineRAGError"
         ),
+        error_category="RATE_LIMIT",
     )
 
     with patch(
@@ -884,3 +892,47 @@ def test_medonto_runner_records_failed_routed_baseline() -> None:
         result.error_message
         == "Routed baseline failed: BaselineRAGError"
     )
+
+    assert result.error_category == "RATE_LIMIT"
+    assert result.medonto_error_category is None
+
+
+
+def test_baseline_runner_classifies_nested_rate_limit() -> None:
+    from unittest.mock import MagicMock
+    from openai import RateLimitError
+
+    from app.llm.baseline import BaselineRAGError
+    from app.llm.client import LLMServiceError
+
+    response = MagicMock()
+    response.status_code = 429
+    response.headers = {}
+
+    provider_error = RateLimitError(
+        "Synthetic provider failure",
+        response=response,
+        body=None,
+    )
+
+    service_error = LLMServiceError("Synthetic service error")
+    service_error.__cause__ = provider_error
+
+    baseline_error = BaselineRAGError("Synthetic baseline error")
+    baseline_error.__cause__ = service_error
+
+    with patch(
+        "evals.baseline_runner.run_baseline_rag",
+        side_effect=baseline_error,
+    ):
+        artifact = run_baseline_dataset(
+            one_question_dataset(),
+            settings=settings(),
+        )
+
+    result = artifact.results[0]
+
+    assert result.system_status == "ERROR"
+    assert result.error_category == "RATE_LIMIT"
+    assert result.medonto_error_category is None
+    assert result.error_message == "Execution failed: BaselineRAGError"

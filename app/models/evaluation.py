@@ -308,6 +308,9 @@ class EvaluationResultRecord(BaseModel):
 
     fallback_error: str | None = None
 
+    error_category: str | None = None
+    medonto_error_category: str | None = None
+
     @model_validator(mode="after")
     def infer_execution_mode(
         self,

@@ -9,6 +9,7 @@ from pathlib import Path
 from app.agent.execution import (
     execute_medonto,
 )
+from app.llm.error_classification import classify_error
 from app.config.settings import (
     Settings,
     get_settings,
@@ -364,6 +365,12 @@ def run_medonto_dataset(
                             fallback_error=(
                                 execution.fallback_error
                             ),
+                            error_category=(
+                                execution.error_category
+                            ),
+                            medonto_error_category=(
+                                execution.medonto_error_category
+                            ),
                         )
                     )
 
@@ -449,6 +456,10 @@ def run_medonto_dataset(
                             .fallback_reason
                         ),
                         fallback_error=None,
+                        error_category=None,
+                        medonto_error_category=(
+                            execution.medonto_error_category
+                        ),
                     )
                 )
 
@@ -624,6 +635,8 @@ def run_medonto_dataset(
                     ),
                     fallback_reason=None,
                     fallback_error=None,
+                    error_category=None,
+                    medonto_error_category=None,
                 )
             )
 
@@ -673,6 +686,8 @@ def run_medonto_dataset(
                     ),
                     fallback_reason=None,
                     fallback_error=None,
+                    error_category=classify_error(exc),
+                    medonto_error_category=None,
                 )
             )
 

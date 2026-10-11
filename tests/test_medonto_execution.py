@@ -241,3 +241,74 @@ def test_baseline_routed_state_runs_baseline_without_failure_reason() -> None:
         "Synthetic question?",
         settings=None,
     )
+
+
+
+def test_successful_fallback_preserves_medonto_error_category() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from app.agent.execution import execute_medonto
+    from app.llm.medonto_generation import MedOntoGenerationError
+
+    with (
+        patch(
+            "app.agent.execution.medonto_graph.invoke",
+            side_effect=MedOntoGenerationError(
+                "Synthetic generation failure"
+            ),
+        ),
+        patch(
+            "app.agent.execution.run_baseline_rag",
+            return_value=MagicMock(),
+        ),
+    ):
+        result = execute_medonto("Synthetic question?")
+
+    assert result.execution_mode == "BASELINE_FALLBACK"
+    assert result.medonto_error_category == "GENERATION_ERROR"
+    assert result.error_category is None
+
+
+def test_routed_baseline_preserves_rate_limit_category() -> None:
+    from unittest.mock import patch, MagicMock
+
+    from openai import RateLimitError
+
+    from app.agent.execution import execute_medonto
+    from app.llm.baseline import BaselineRAGError
+    from app.llm.client import LLMServiceError
+
+    response = MagicMock()
+    response.status_code = 429
+    response.headers = {}
+
+    provider_error = RateLimitError(
+        "Synthetic provider failure",
+        response=response,
+        body=None,
+    )
+
+    service_error = LLMServiceError("Synthetic service error")
+    service_error.__cause__ = provider_error
+
+    baseline_error = BaselineRAGError("Synthetic baseline error")
+    baseline_error.__cause__ = service_error
+
+    with (
+        patch(
+            "app.agent.execution.medonto_graph.invoke",
+            return_value={
+                "orchestration_status": "BASELINE_ROUTED"
+            },
+        ),
+        patch(
+            "app.agent.execution.run_baseline_rag",
+            side_effect=baseline_error,
+        ),
+    ):
+        result = execute_medonto("Synthetic question?")
+
+    assert result.execution_mode == "BASELINE_ROUTED"
+    assert result.fallback_error == "BaselineRAGError"
+    assert result.error_category == "RATE_LIMIT"
+    assert result.medonto_error_category is None

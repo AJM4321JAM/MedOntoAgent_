@@ -13,6 +13,7 @@ from app.config.settings import (
 from app.llm.baseline import (
     run_baseline_rag,
 )
+from app.llm.error_classification import classify_error
 from app.models.evaluation import (
     EvaluationDataset,
     EvaluationResultRecord,
@@ -204,6 +205,7 @@ def run_baseline_dataset(
                         "Execution failed: "
                         f"{type(exc).__name__}"
                     ),
+                    error_category=classify_error(exc),
                 )
             )
 

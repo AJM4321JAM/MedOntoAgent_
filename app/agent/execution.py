@@ -8,6 +8,7 @@ from app.llm.baseline import (
     run_baseline_rag,
 )
 from app.llm.client import LLMServiceError
+from app.llm.error_classification import classify_error
 from app.llm.medonto_generation import (
     MedOntoGenerationError,
 )
@@ -70,6 +71,10 @@ class MedOntoExecution:
 
     fallback_error: str | None = None
 
+    error_category: str | None = None
+
+    medonto_error_category: str | None = None
+
 
 def execute_medonto(
     query: str,
@@ -96,6 +101,7 @@ def execute_medonto(
         fallback_reason = (
             type(exc).__name__
         )
+        medonto_error_category = classify_error(exc)
 
         try:
             baseline_response = run_baseline_rag(
@@ -119,6 +125,8 @@ def execute_medonto(
                 fallback_error=(
                     type(fallback_exc).__name__
                 ),
+                error_category=classify_error(fallback_exc),
+                medonto_error_category=medonto_error_category,
             )
 
         return MedOntoExecution(
@@ -132,6 +140,7 @@ def execute_medonto(
                 fallback_reason
             ),
             fallback_error=None,
+            medonto_error_category=medonto_error_category,
         )
 
     orchestration_status = state.get(
@@ -158,6 +167,7 @@ def execute_medonto(
                 fallback_error=(
                     type(baseline_exc).__name__
                 ),
+                error_category=classify_error(baseline_exc),
             )
 
         return MedOntoExecution(
