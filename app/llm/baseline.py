@@ -509,5 +509,8 @@ def run_baseline_rag(
         retrieved_contexts=(
             retrieved_contexts
         ),
+        retrieved_chunks=(
+            retrieval.retrieved_chunks
+        ),
         status=output.status,
     )

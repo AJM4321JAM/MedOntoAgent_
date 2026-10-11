@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.models.constraints import ConstraintType
+from app.models.retrieval import RetrievedChunk
 
 
 class CitationReference(BaseModel):
@@ -64,6 +65,11 @@ class BaselineQueryResponse(BaseModel):
     )
 
     retrieved_contexts: list[str] = Field(
+        default_factory=list,
+        exclude=True,
+    )
+
+    retrieved_chunks: list[RetrievedChunk] = Field(
         default_factory=list,
         exclude=True,
     )
