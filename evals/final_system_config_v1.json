@@ -1,0 +1,23 @@
+{
+  "corpus_version": "clinical-corpus-v1",
+  "golden_dataset_version": "1.0",
+  "golden_dataset_frozen": true,
+  "qdrant_collection": "medontoagent_clinical_documents",
+  "qdrant_point_count": 1535,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_dimensions": 384,
+  "embedding_device": "cpu",
+  "max_chunk_words": 600,
+  "chunk_overlap_words": 80,
+  "retrieval_top_k": 5,
+  "generation_model": "openrouter/free",
+  "max_agent_retries": 1,
+  "ontology_path": "ontology/medical_ontology.ttl",
+  "ontology_checksum_sha256": "088c4b5e3ee2a611660eb2e3cd4dab007001a02f7789085b18fade2d4c6b6ae6",
+  "ontology_assertion_count": 6,
+  "ontology_active_assertion_count": 5,
+  "corpus_manifest_sha256": "a3acab8bac352b3ced192101adf1a3cd796e39217a8fb1974b68df010108a91b",
+  "golden_dataset_sha256": "95dcd276260221a13c4e513d6c9499b7c8ec3cf273efa73925447fb55b3b6a3a",
+  "baseline_architecture": "vector retrieval -> grounded generation",
+  "medonto_architecture": "concept mapping -> ontology constraints -> source-scoped vector retrieval -> grounded generation -> citation validation -> ontology validation -> bounded retry/abstention"
+}

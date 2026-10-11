@@ -678,3 +678,130 @@ class RagasEvaluationArtifact(BaseModel):
     )
 
     summary: RagasMetricSummary
+
+
+class FrozenCorpusDocument(BaseModel):
+    """
+    One immutable source-document entry in a frozen
+    evaluation corpus.
+    """
+
+    document_id: str = Field(
+        min_length=1,
+    )
+
+    title: str = Field(
+        min_length=1,
+    )
+
+    publisher: str = Field(
+        min_length=1,
+    )
+
+    version: str = Field(
+        min_length=1,
+    )
+
+    checksum_sha256: str = Field(
+        min_length=64,
+        max_length=64,
+    )
+
+    approval_status: str = Field(
+        min_length=1,
+    )
+
+    superseded_by_document_id: str | None = None
+
+    chunk_count: int = Field(
+        ge=1,
+    )
+
+
+class CorpusFreezeManifest(BaseModel):
+    """
+    Reproducibility manifest for one frozen clinical corpus.
+    """
+
+    corpus_version: str = Field(
+        min_length=1,
+    )
+
+    created_at: datetime
+
+    qdrant_collection: str = Field(
+        min_length=1,
+    )
+
+    qdrant_point_count: int = Field(
+        ge=1,
+    )
+
+    embedding_model: str = Field(
+        min_length=1,
+    )
+
+    embedding_dimensions: int = Field(
+        ge=1,
+    )
+
+    max_chunk_words: int = Field(
+        ge=1,
+    )
+
+    chunk_overlap_words: int = Field(
+        ge=0,
+    )
+
+    retrieval_top_k: int = Field(
+        ge=1,
+    )
+
+    openrouter_model: str = Field(
+        min_length=1,
+    )
+
+    max_agent_retries: int = Field(
+        ge=0,
+    )
+
+    ontology_path: str = Field(
+        min_length=1,
+    )
+
+    ontology_checksum_sha256: str = Field(
+        min_length=64,
+        max_length=64,
+    )
+
+    ontology_assertion_count: int = Field(
+        ge=0,
+    )
+
+    ontology_active_assertion_count: int = Field(
+        ge=0,
+    )
+
+    documents: list[
+        FrozenCorpusDocument
+    ] = Field(
+        min_length=1,
+    )
+
+    @model_validator(mode="after")
+    def validate_documents(
+        self,
+    ) -> "CorpusFreezeManifest":
+        document_ids = [
+            document.document_id
+            for document in self.documents
+        ]
+
+        if len(document_ids) != len(
+            set(document_ids)
+        ):
+            raise ValueError(
+                "Frozen corpus document IDs must be unique."
+            )
+
+        return self

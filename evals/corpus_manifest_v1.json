@@ -1,0 +1,59 @@
+{
+  "corpus_version": "clinical-corpus-v1",
+  "created_at": "2026-10-11T10:26:46.160122Z",
+  "qdrant_collection": "medontoagent_clinical_documents",
+  "qdrant_point_count": 1535,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_dimensions": 384,
+  "max_chunk_words": 600,
+  "chunk_overlap_words": 80,
+  "retrieval_top_k": 5,
+  "openrouter_model": "openrouter/free",
+  "max_agent_retries": 1,
+  "ontology_path": "ontology/medical_ontology.ttl",
+  "ontology_checksum_sha256": "088c4b5e3ee2a611660eb2e3cd4dab007001a02f7789085b18fade2d4c6b6ae6",
+  "ontology_assertion_count": 6,
+  "ontology_active_assertion_count": 5,
+  "documents": [
+    {
+      "document_id": "DOC-e943ba2bdc31",
+      "title": "Hypertension in pregnancy: diagnosis and management",
+      "publisher": "NICE",
+      "version": "NG133-2026-10-11-e943ba2bdc31",
+      "checksum_sha256": "e943ba2bdc31c772bb3b1332dfbcd36887e2f4308ac0f4163745f2c2fe6b78ec",
+      "approval_status": "APPROVED",
+      "superseded_by_document_id": null,
+      "chunk_count": 160
+    },
+    {
+      "document_id": "DOC-21a51be8081f",
+      "title": "Hypertension in adults: diagnosis and management",
+      "publisher": "NICE",
+      "version": "NG136-2026-10-11-21a51be8081f",
+      "checksum_sha256": "21a51be8081f2e7ae3b23f7c41d72a13504f737a4dd4d65abc28d87f35404a3e",
+      "approval_status": "APPROVED",
+      "superseded_by_document_id": null,
+      "chunk_count": 98
+    },
+    {
+      "document_id": "DOC-dad82839ba53",
+      "title": "WHO recommendation on drug treatment for severe hypertension in pregnancy",
+      "publisher": "WHO",
+      "version": "WHO-SEVERE-2018-dad82839ba53",
+      "checksum_sha256": "dad82839ba537a8bfce61c30cc2792d065738377c10e274ac5139d17e9d2613f",
+      "approval_status": "APPROVED",
+      "superseded_by_document_id": null,
+      "chunk_count": 720
+    },
+    {
+      "document_id": "DOC-d21df49f3ed9",
+      "title": "WHO recommendations on drug treatment for non-severe hypertension in pregnancy",
+      "publisher": "WHO",
+      "version": "WHO-NONSEVERE-2020-d21df49f3ed9",
+      "checksum_sha256": "d21df49f3ed9eb5ad34f211d0f7921332c514c652923730bd92167610d9d7358",
+      "approval_status": "APPROVED",
+      "superseded_by_document_id": null,
+      "chunk_count": 557
+    }
+  ]
+}

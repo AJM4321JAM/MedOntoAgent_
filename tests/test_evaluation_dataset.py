@@ -184,25 +184,29 @@ def test_abstention_question_cannot_have_reference_answer() -> None:
         )
 
 
-def test_golden_template_is_not_frozen_yet() -> None:
+def test_golden_dataset_is_frozen() -> None:
     dataset = load_dataset(
         "evals/golden_dataset.json"
     )
 
-    assert dataset.frozen is False
+    assert dataset.frozen is True
 
     assert (
         dataset.dataset_version
-        == "0.1-template"
+        == "1.0"
     )
 
     assert (
         dataset.corpus_version
-        == "TO_BE_FROZEN"
+        == "clinical-corpus-v1"
     )
 
+    assert len(
+        dataset.questions
+    ) == 25
 
-def test_golden_template_is_not_ready_for_final_evaluation() -> None:
+
+def test_golden_dataset_is_ready_for_final_evaluation() -> None:
     dataset = load_dataset(
         "evals/golden_dataset.json"
     )
@@ -213,21 +217,7 @@ def test_golden_template_is_not_ready_for_final_evaluation() -> None:
         )
     )
 
-    assert problems
-
-    assert any(
-        "not frozen"
-        in problem.lower()
-        for problem
-        in problems
-    )
-
-    assert any(
-        "placeholder"
-        in problem.lower()
-        for problem
-        in problems
-    )
+    assert problems == []
 
 
 def test_dataset_question_split_must_match_dataset_split() -> None:

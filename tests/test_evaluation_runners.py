@@ -91,17 +91,30 @@ def test_development_dataset_is_runnable() -> None:
     )
 
 
-def test_unfinished_final_dataset_is_blocked() -> None:
-    with pytest.raises(
-        EvaluationConfigurationError,
-        match=(
-            "Final evaluation dataset "
-            "is not ready"
-        ),
-    ):
+def test_frozen_final_dataset_is_accepted() -> None:
+    dataset = (
         load_evaluation_dataset(
             "evals/golden_dataset.json"
         )
+    )
+
+    assert dataset.split == "FINAL"
+
+    assert dataset.frozen is True
+
+    assert (
+        dataset.dataset_version
+        == "1.0"
+    )
+
+    assert (
+        dataset.corpus_version
+        == "clinical-corpus-v1"
+    )
+
+    assert len(
+        dataset.questions
+    ) == 25
 
 
 def test_baseline_runner_records_standard_result() -> None:

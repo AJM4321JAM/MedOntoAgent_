@@ -1,335 +1,534 @@
 {
   "dataset_name": "MedOntoAgent Final Golden Dataset",
-  "dataset_version": "0.1-template",
+  "dataset_version": "1.0",
   "description": "Final evaluation structure for controlled comparison of conventional RAG and ontology-constrained MedOntoAgent. Clinical wording and reference evidence must be completed only after the authoritative corpus is frozen.",
   "split": "FINAL",
-  "corpus_version": "TO_BE_FROZEN",
-  "frozen": false,
+  "corpus_version": "clinical-corpus-v1",
+  "frozen": true,
   "questions": [
     {
       "question_id": "GOLD-001",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What medication is recommended as the first option for treating chronic hypertension during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "The NICE pregnancy guideline recommends considering labetalol first for chronic hypertension during pregnancy.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 1 of 7."
+      "notes": "Straightforward evidence question grounded in NICE NG133 recommendation 1.3.10."
     },
     {
       "question_id": "GOLD-002",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What alternatives are suggested when labetalol is not suitable for chronic hypertension during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "Nifedipine should be considered if labetalol is not suitable, and methyldopa if both labetalol and nifedipine are not suitable.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 2 of 7."
+      "notes": "Straightforward evidence question testing conditional treatment alternatives in NICE NG133."
     },
     {
       "question_id": "GOLD-003",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What should be done if a woman taking an ACE inhibitor becomes pregnant?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "The pregnancy guideline recommends stopping the ACE inhibitor, preferably within 2 working days of notification of pregnancy, and offering an alternative treatment.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 3 of 7."
+      "notes": "Straightforward evidence question grounded in NICE NG133 recommendation 1.3.3."
     },
     {
       "question_id": "GOLD-004",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What should be done if a woman taking an ARB becomes pregnant?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "The pregnancy guideline recommends stopping the ARB, preferably within 2 working days of notification of pregnancy, and offering an alternative treatment.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 4 of 7."
+      "notes": "Straightforward evidence question grounded in NICE NG133 recommendation 1.3.3."
     },
     {
       "question_id": "GOLD-005",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Which medicines are recommended for immediate treatment of severe hypertension during pregnancy in critical care?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "NICE recommends immediate treatment with labetalol, oral nifedipine, or intravenous hydralazine.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0112"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 5 of 7."
+      "notes": "Straightforward evidence question grounded in NICE NG133 recommendation 1.8.6."
     },
     {
       "question_id": "GOLD-006",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Does the corpus support pharmacological treatment of non-severe hypertension during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "Yes. The WHO guideline supports antihypertensive treatment for non-severe hypertension during pregnancy and identifies methyldopa and beta-blockers as effective treatment options.",
+      "expected_document_ids": [
+        "DOC-d21df49f3ed9"
+      ],
+      "expected_chunk_ids": [
+        "DOC-d21df49f3ed9-CHUNK-0018"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 6 of 7."
+      "notes": "Straightforward evidence question grounded in the WHO non-severe hypertension pregnancy guideline."
     },
     {
       "question_id": "GOLD-007",
       "split": "FINAL",
       "category": "STRAIGHTFORWARD_EVIDENCE",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What role does methyldopa have in treating hypertension during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "For chronic hypertension in pregnancy, NICE suggests methyldopa when both labetalol and nifedipine are not suitable. WHO also identifies methyldopa as an effective option for non-severe hypertension during pregnancy.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31",
+        "DOC-d21df49f3ed9"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030",
+        "DOC-d21df49f3ed9-CHUNK-0018"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Straightforward evidence question 7 of 7."
+      "notes": "Straightforward evidence question supported by both NICE and WHO pregnancy-specific guidance."
     },
     {
       "question_id": "GOLD-008",
       "split": "FINAL",
       "category": "ONTOLOGY_CONSTRAINT",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Are ACE inhibitors recommended during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Ontology/contraindication question 1 of 6."
+      "reference_answer": "No. Pregnancy-specific guidance advises against ACE inhibitor use during pregnancy and recommends stopping ACE inhibitor treatment if pregnancy occurs.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0022",
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
+      "expected_ontology_concepts": [
+        "ACEInhibitor",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "ACEInhibitor notRecommendedFor Pregnancy"
+      ],
+      "notes": "Ontology constraint question testing the ACE inhibitor pregnancy restriction."
     },
     {
       "question_id": "GOLD-009",
       "split": "FINAL",
       "category": "ONTOLOGY_CONSTRAINT",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Are angiotensin receptor blockers recommended during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Ontology/contraindication question 2 of 6."
+      "reference_answer": "No. Pregnancy-specific guidance advises against ARB use during pregnancy and recommends stopping ARB treatment if pregnancy occurs.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0022",
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
+      "expected_ontology_concepts": [
+        "AngiotensinReceptorBlocker",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "AngiotensinReceptorBlocker notRecommendedFor Pregnancy"
+      ],
+      "notes": "Ontology constraint question testing the ARB pregnancy restriction."
     },
     {
       "question_id": "GOLD-010",
       "split": "FINAL",
       "category": "ONTOLOGY_CONSTRAINT",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "A general adult hypertension guideline recommends an ACE inhibitor for some patients. Should that recommendation be applied unchanged to a pregnant patient?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Ontology/contraindication question 3 of 6."
+      "reference_answer": "No. The general adult guideline itself directs pregnant patients to pregnancy-specific hypertension guidance, where ACE inhibitors are not recommended during pregnancy.",
+      "expected_document_ids": [
+        "DOC-21a51be8081f",
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-21a51be8081f-CHUNK-0054",
+        "DOC-21a51be8081f-CHUNK-0057",
+        "DOC-e943ba2bdc31-CHUNK-0022"
+      ],
+      "expected_ontology_concepts": [
+        "ACEInhibitor",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "ACEInhibitor notRecommendedFor Pregnancy"
+      ],
+      "notes": "Tests source applicability when general adult evidence and pregnancy-specific constraints coexist."
     },
     {
       "question_id": "GOLD-011",
       "split": "FINAL",
       "category": "ONTOLOGY_CONSTRAINT",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What pregnancy-related restriction applies to ACE inhibitor therapy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Ontology/contraindication question 4 of 6."
+      "reference_answer": "ACE inhibitors should be avoided during pregnancy. If a woman taking one becomes pregnant, the treatment should be stopped and an alternative offered.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0022",
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
+      "expected_ontology_concepts": [
+        "ACEInhibitor",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "ACEInhibitor notRecommendedFor Pregnancy"
+      ],
+      "notes": "Direct ontology-backed restriction question."
     },
     {
       "question_id": "GOLD-012",
       "split": "FINAL",
       "category": "ONTOLOGY_CONSTRAINT",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "What pregnancy-related restriction applies to ARB therapy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Ontology/contraindication question 5 of 6."
+      "reference_answer": "ARBs should be avoided during pregnancy. If a woman taking one becomes pregnant, the treatment should be stopped and an alternative offered.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0022",
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
+      "expected_ontology_concepts": [
+        "AngiotensinReceptorBlocker",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "AngiotensinReceptorBlocker notRecommendedFor Pregnancy"
+      ],
+      "notes": "Direct ontology-backed restriction question."
     },
     {
       "question_id": "GOLD-013",
       "split": "FINAL",
       "category": "ONTOLOGY_CONSTRAINT",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "If general hypertension evidence and pregnancy-specific evidence differ regarding ACE inhibitors, which evidence should guide treatment during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Ontology/contraindication question 6 of 6."
+      "reference_answer": "Pregnancy-specific guidance should guide treatment. The general adult guideline redirects pregnant patients to the pregnancy guideline, which advises against ACE inhibitor use during pregnancy.",
+      "expected_document_ids": [
+        "DOC-21a51be8081f",
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-21a51be8081f-CHUNK-0054",
+        "DOC-e943ba2bdc31-CHUNK-0022"
+      ],
+      "expected_ontology_concepts": [
+        "ACEInhibitor",
+        "Pregnancy"
+      ],
+      "expected_ontology_relationships": [
+        "ACEInhibitor notRecommendedFor Pregnancy"
+      ],
+      "notes": "Tests patient-context applicability and precedence of pregnancy-specific evidence."
     },
     {
       "question_id": "GOLD-014",
       "split": "FINAL",
       "category": "PATIENT_GROUP",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "How does antihypertensive treatment guidance differ for a pregnant patient compared with a general adult hypertension patient?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Patient-group question 1 of 4."
+      "reference_answer": "General adult guidance may use ACE inhibitors or ARBs for some patients, but pregnancy-specific guidance directs treatment away from those drugs and toward pregnancy-appropriate options.",
+      "expected_document_ids": [
+        "DOC-21a51be8081f",
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-21a51be8081f-CHUNK-0054",
+        "DOC-21a51be8081f-CHUNK-0057",
+        "DOC-e943ba2bdc31-CHUNK-0022",
+        "DOC-e943ba2bdc31-CHUNK-0030"
+      ],
+      "expected_ontology_concepts": [
+        "Pregnancy",
+        "ACEInhibitor",
+        "AngiotensinReceptorBlocker"
+      ],
+      "expected_ontology_relationships": [
+        "ACEInhibitor notRecommendedFor Pregnancy",
+        "AngiotensinReceptorBlocker notRecommendedFor Pregnancy"
+      ],
+      "notes": "Patient-group comparison between general adult and pregnancy-specific hypertension guidance."
     },
     {
       "question_id": "GOLD-015",
       "split": "FINAL",
       "category": "PATIENT_GROUP",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "For chronic hypertension during pregnancy, what treatment does the corpus prioritize?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Patient-group question 2 of 4."
+      "reference_answer": "The NICE pregnancy guideline prioritizes labetalol, with nifedipine considered if labetalol is unsuitable and methyldopa if both are unsuitable.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030"
+      ],
+      "expected_ontology_concepts": [
+        "ChronicHypertension",
+        "Pregnancy",
+        "Labetalol",
+        "Nifedipine",
+        "Methyldopa"
+      ],
+      "expected_ontology_relationships": [
+        "ChronicHypertension treatedBy Labetalol",
+        "ChronicHypertension treatedBy Nifedipine",
+        "ChronicHypertension treatedBy Methyldopa"
+      ],
+      "notes": "Patient-group question testing pregnancy applicability and ordered chronic-hypertension treatment options."
     },
     {
       "question_id": "GOLD-016",
       "split": "FINAL",
       "category": "PATIENT_GROUP",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Which treatment alternatives are described specifically for pregnant patients when labetalol is unsuitable?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Patient-group question 3 of 4."
+      "reference_answer": "Nifedipine should be considered if labetalol is not suitable, and methyldopa if both labetalol and nifedipine are unsuitable.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030"
+      ],
+      "expected_ontology_concepts": [
+        "ChronicHypertension",
+        "Pregnancy",
+        "Labetalol",
+        "Nifedipine",
+        "Methyldopa"
+      ],
+      "expected_ontology_relationships": [
+        "ChronicHypertension treatedBy Labetalol",
+        "ChronicHypertension treatedBy Nifedipine",
+        "ChronicHypertension treatedBy Methyldopa"
+      ],
+      "notes": "Patient-group question focused on conditional treatment alternatives in pregnancy."
     },
     {
       "question_id": "GOLD-017",
       "split": "FINAL",
       "category": "PATIENT_GROUP",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Why should a general adult hypertension treatment recommendation not automatically be applied to a pregnant patient?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Patient-group question 4 of 4."
+      "reference_answer": "Because pregnancy changes treatment applicability. The adult guideline redirects pregnant patients to pregnancy-specific guidance, and some drugs used in general adults, including ACE inhibitors and ARBs, are not recommended during pregnancy.",
+      "expected_document_ids": [
+        "DOC-21a51be8081f",
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-21a51be8081f-CHUNK-0054",
+        "DOC-21a51be8081f-CHUNK-0057",
+        "DOC-e943ba2bdc31-CHUNK-0022"
+      ],
+      "expected_ontology_concepts": [
+        "Pregnancy",
+        "ACEInhibitor",
+        "AngiotensinReceptorBlocker"
+      ],
+      "expected_ontology_relationships": [
+        "ACEInhibitor notRecommendedFor Pregnancy",
+        "AngiotensinReceptorBlocker notRecommendedFor Pregnancy"
+      ],
+      "notes": "Tests patient-context applicability rather than generic transfer of adult treatment guidance."
     },
     {
       "question_id": "GOLD-018",
       "split": "FINAL",
       "category": "GUIDELINE_VERSION",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Which frozen source provides the pregnancy-specific recommendation about ACE inhibitors and ARBs?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "NICE NG133, Hypertension in pregnancy: diagnosis and management, provides the pregnancy-specific recommendation on ACE inhibitors and ARBs.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0022",
+        "DOC-e943ba2bdc31-CHUNK-0023"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Guideline/version question 1 of 3."
+      "notes": "Guideline/source identification question for the pregnancy-specific NICE source."
     },
     {
       "question_id": "GOLD-019",
       "split": "FINAL",
       "category": "GUIDELINE_VERSION",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Which frozen source provides general adult hypertension guidance rather than pregnancy-specific guidance?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
+      "reference_answer": "NICE NG136, Hypertension in adults: diagnosis and management, is the frozen source for general adult hypertension guidance.",
+      "expected_document_ids": [
+        "DOC-21a51be8081f"
+      ],
+      "expected_chunk_ids": [
+        "DOC-21a51be8081f-CHUNK-0000"
+      ],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "Guideline/version question 2 of 3."
+      "notes": "Guideline/source identification question for the general adult NICE source."
     },
     {
       "question_id": "GOLD-020",
       "split": "FINAL",
       "category": "GUIDELINE_VERSION",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "When general adult hypertension guidance and pregnancy-specific guidance both exist, which source is directly applicable to treatment during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
+      "reference_answer": "The pregnancy-specific NICE guideline, NG133, is directly applicable. NG136 itself redirects pregnant patients to the hypertension-in-pregnancy guideline.",
+      "expected_document_ids": [
+        "DOC-21a51be8081f",
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-21a51be8081f-CHUNK-0054",
+        "DOC-e943ba2bdc31-CHUNK-0022"
+      ],
+      "expected_ontology_concepts": [
+        "Pregnancy"
+      ],
       "expected_ontology_relationships": [],
-      "notes": "Guideline/version question 3 of 3."
+      "notes": "Tests source applicability and governance awareness across general and pregnancy-specific NICE guidance."
     },
     {
       "question_id": "GOLD-021",
       "split": "FINAL",
       "category": "NO_EVIDENCE",
-      "question": "TO_BE_COMPLETED_AFTER_CORPUS_FREEZE",
+      "question": "What antibiotic treatment does the corpus recommend for bacterial pneumonia during pregnancy?",
       "expected_behavior": "ABSTAIN",
       "reference_answer": null,
       "expected_document_ids": [],
       "expected_chunk_ids": [],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "No-evidence question 1 of 3."
+      "notes": "No-evidence question. Literal corpus scan found no pneumonia or antibiotic evidence, and baseline semantic retrieval returned only unrelated hypertension material."
     },
     {
       "question_id": "GOLD-022",
       "split": "FINAL",
       "category": "NO_EVIDENCE",
-      "question": "TO_BE_COMPLETED_AFTER_CORPUS_FREEZE",
+      "question": "What surgical procedure does the corpus recommend for acute appendicitis?",
       "expected_behavior": "ABSTAIN",
       "reference_answer": null,
       "expected_document_ids": [],
       "expected_chunk_ids": [],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "No-evidence question 2 of 3."
+      "notes": "No-evidence question. Literal corpus scan found no appendicitis or appendectomy evidence, and semantic retrieval returned unrelated intensive-care material."
     },
     {
       "question_id": "GOLD-023",
       "split": "FINAL",
       "category": "NO_EVIDENCE",
-      "question": "TO_BE_COMPLETED_AFTER_CORPUS_FREEZE",
+      "question": "What preventive medication does the corpus recommend for migraine during pregnancy?",
       "expected_behavior": "ABSTAIN",
       "reference_answer": null,
       "expected_document_ids": [],
       "expected_chunk_ids": [],
       "expected_ontology_concepts": [],
       "expected_ontology_relationships": [],
-      "notes": "No-evidence question 3 of 3."
+      "notes": "No-evidence question. Literal corpus scan found no migraine or migraine-prophylaxis evidence. Semantic retrieval returned pregnancy antihypertensive evidence that is insufficient to answer the migraine question."
     },
     {
       "question_id": "GOLD-024",
       "split": "FINAL",
       "category": "DIFFICULT_AMBIGUOUS",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Is nifedipine always preferred over methyldopa for chronic hypertension during pregnancy?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Difficult/ambiguous question 1 of 2."
+      "reference_answer": "No. NICE recommends considering nifedipine when labetalol is not suitable, and methyldopa when both labetalol and nifedipine are not suitable. The choice also depends on treatment history, side effects, risks, and patient preference.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030"
+      ],
+      "expected_ontology_concepts": [
+        "ChronicHypertension",
+        "Pregnancy",
+        "Nifedipine",
+        "Methyldopa",
+        "Labetalol"
+      ],
+      "expected_ontology_relationships": [
+        "ChronicHypertension treatedBy Labetalol",
+        "ChronicHypertension treatedBy Nifedipine",
+        "ChronicHypertension treatedBy Methyldopa"
+      ],
+      "notes": "Difficult conditionality question. Tests whether the system incorrectly converts an ordered conditional recommendation into an absolute drug preference."
     },
     {
       "question_id": "GOLD-025",
       "split": "FINAL",
       "category": "DIFFICULT_AMBIGUOUS",
-      "question": "TO_BE_COMPLETED_FROM_APPROVED_CORPUS",
+      "question": "Can the corpus support one antihypertensive treatment choice for every pregnant patient with hypertension?",
       "expected_behavior": "ANSWER",
-      "reference_answer": null,
-      "expected_document_ids": [],
-      "expected_chunk_ids": [],
-      "expected_ontology_concepts": [],
-      "expected_ontology_relationships": [],
-      "notes": "Difficult/ambiguous question 2 of 2."
+      "reference_answer": "No. Treatment depends on the clinical context. NICE uses conditional alternatives for chronic hypertension, while WHO guidance also notes that treatment choice may depend on factors such as drug suitability, clinician experience, cost, local availability, and the limited certainty of comparative evidence.",
+      "expected_document_ids": [
+        "DOC-e943ba2bdc31",
+        "DOC-dad82839ba53",
+        "DOC-d21df49f3ed9"
+      ],
+      "expected_chunk_ids": [
+        "DOC-e943ba2bdc31-CHUNK-0030",
+        "DOC-dad82839ba53-CHUNK-0006",
+        "DOC-d21df49f3ed9-CHUNK-0018"
+      ],
+      "expected_ontology_concepts": [
+        "Pregnancy",
+        "ChronicHypertension",
+        "Labetalol",
+        "Nifedipine",
+        "Methyldopa"
+      ],
+      "expected_ontology_relationships": [
+        "ChronicHypertension treatedBy Labetalol",
+        "ChronicHypertension treatedBy Nifedipine",
+        "ChronicHypertension treatedBy Methyldopa"
+      ],
+      "notes": "Difficult ambiguity question testing preservation of context, conditionality, and uncertainty across NICE and WHO guidance."
     }
   ]
 }
