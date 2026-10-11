@@ -329,8 +329,10 @@ async def _metric_ascore_with_one_retry(
     **kwargs,
 ):
     """
-    Run one Ragas metric with one bounded retry for
-    transient Instructor/provider failures.
+    Run one Ragas metric with bounded pacing and one retry.
+
+    The delay keeps free-tier evaluator traffic below
+    provider request-per-minute limits.
     """
     total_attempts = 2
 
@@ -338,6 +340,8 @@ async def _metric_ascore_with_one_retry(
         1,
         total_attempts + 1,
     ):
+        await asyncio.sleep(8)
+
         try:
             return await metric.ascore(
                 **kwargs
@@ -354,8 +358,6 @@ async def _metric_ascore_with_one_retry(
                 or attempt == total_attempts
             ):
                 raise
-
-            await asyncio.sleep(3)
 
     raise RuntimeError(
         "Ragas metric failed unexpectedly."
