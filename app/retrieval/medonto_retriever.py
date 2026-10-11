@@ -78,6 +78,70 @@ def _convert_points(
     return results
 
 
+def _fuse_ranked_chunks(
+    baseline_chunks: list[RetrievedChunk],
+    ontology_chunks: list[RetrievedChunk],
+    *,
+    top_k: int,
+    rrf_k: int = 60,
+) -> list[RetrievedChunk]:
+    """
+    Fuse baseline and ontology candidate rankings using
+    Reciprocal Rank Fusion.
+
+    Raw vector similarity scores are not compared directly
+    because the two searches may use different query vectors.
+    """
+
+    scores: dict[str, float] = {}
+    chunks: dict[str, RetrievedChunk] = {}
+
+    for ranked_chunks in (
+        baseline_chunks,
+        ontology_chunks,
+    ):
+        for rank, chunk in enumerate(
+            ranked_chunks,
+            start=1,
+        ):
+            chunk_id = chunk.chunk_id
+
+            scores[chunk_id] = (
+                scores.get(
+                    chunk_id,
+                    0.0,
+                )
+                + 1.0 / (
+                    rrf_k + rank
+                )
+            )
+
+            existing = chunks.get(
+                chunk_id
+            )
+
+            if (
+                existing is None
+                or chunk.score
+                > existing.score
+            ):
+                chunks[chunk_id] = chunk
+
+    ordered_ids = sorted(
+        scores,
+        key=lambda chunk_id: (
+            -scores[chunk_id],
+            chunk_id,
+        ),
+    )
+
+    return [
+        chunks[chunk_id]
+        for chunk_id
+        in ordered_ids[:top_k]
+    ]
+
+
 def _eligible_constraints(
     constraint_set: OntologyConstraintSet,
 ):
@@ -197,11 +261,6 @@ def retrieve_with_ontology_state(
     )
 
     try:
-        vector = embed_text(
-            retrieval_query,
-            settings=settings,
-        )
-
         qdrant = (
             client
             or create_qdrant_client(
@@ -227,7 +286,43 @@ def retrieve_with_ontology_state(
 
         retrieval_relaxed = False
 
+        baseline_points = []
+
         if used_ontology_filter:
+            baseline_vector = embed_text(
+                normalized_query,
+                settings=settings,
+            )
+
+            with observed_span(
+                "qdrant.query",
+                attributes={
+                    "medonto.retrieval.top_k": (
+                        settings.retrieval_top_k
+                    ),
+                    "medonto.retrieval.mode": (
+                        "baseline_fusion"
+                    ),
+                },
+            ):
+                baseline_points = (
+                    _query_qdrant(
+                        client=qdrant,
+                        settings=settings,
+                        vector=(
+                            baseline_vector
+                        ),
+                        query_filter=(
+                            approved_document_filter()
+                        ),
+                    )
+                )
+
+            vector = embed_text(
+                retrieval_query,
+                settings=settings,
+            )
+
             with observed_span(
                 "qdrant.query",
                 attributes={
@@ -283,6 +378,11 @@ def retrieve_with_ontology_state(
                     )
 
         else:
+            vector = embed_text(
+                retrieval_query,
+                settings=settings,
+            )
+
             with observed_span(
                 "qdrant.query",
                 attributes={
@@ -315,11 +415,33 @@ def retrieve_with_ontology_state(
             "Ontology-aware retrieval failed."
         ) from exc
 
-    retrieved_chunks = (
+    ontology_chunks = (
         _convert_points(
             points
         )
     )
+
+    if used_ontology_filter:
+        baseline_chunks = (
+            _convert_points(
+                baseline_points
+            )
+        )
+
+        retrieved_chunks = (
+            _fuse_ranked_chunks(
+                baseline_chunks,
+                ontology_chunks,
+                top_k=(
+                    settings.retrieval_top_k
+                ),
+            )
+        )
+
+    else:
+        retrieved_chunks = (
+            ontology_chunks
+        )
 
     retrieval = RetrievalResult(
         query=retrieval_query,

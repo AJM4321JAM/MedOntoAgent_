@@ -17,6 +17,7 @@ from app.models.ontology import (
 )
 from app.retrieval.medonto_retriever import (
     _constraint_concept_names,
+    _fuse_ranked_chunks,
     retrieve_medonto,
 )
 
@@ -257,17 +258,16 @@ def test_constraint_uses_expanded_query_and_strict_filter(
         settings=settings,
     )
 
-    mock_embed.assert_called_once()
+    assert mock_embed.call_count == 2
 
-    call = (
-        mock_embed.call_args
+    assert (
+        mock_embed.call_args_list[0].args[0]
+        == "test question"
     )
 
     assert (
-        call.args[0]
-        == constraint_set
-        .retrieval_hints
-        .expanded_query
+        mock_embed.call_args_list[1].args[0]
+        == constraint_set.retrieval_hints.expanded_query
     )
 
     assert (
@@ -344,10 +344,9 @@ def test_zero_strict_results_relaxes_once(
     )
 
     mock_query.side_effect = [
+        [create_point()],
         [],
-        [
-            create_point()
-        ],
+        [create_point()],
     ]
 
     result = retrieve_medonto(
@@ -357,7 +356,7 @@ def test_zero_strict_results_relaxes_once(
 
     assert (
         mock_query.call_count
-        == 2
+        == 3
     )
 
     assert (
@@ -717,6 +716,7 @@ def test_relaxed_retrieval_keeps_constraint_source_scope(
     mock_client.return_value = MagicMock()
 
     mock_query.side_effect = [
+        [create_point()],
         [],
         [create_point()],
     ]
@@ -733,11 +733,11 @@ def test_relaxed_retrieval_keeps_constraint_source_scope(
 
     assert (
         mock_query.call_count
-        == 2
+        == 3
     )
 
     relaxed_filter = (
-        mock_query.call_args_list[1]
+        mock_query.call_args_list[2]
         .kwargs[
             "query_filter"
         ]
@@ -767,3 +767,150 @@ def test_relaxed_retrieval_keeps_constraint_source_scope(
         .value
         == "DOC-ACTIVE-TEST"
     )
+
+
+
+def _chunk_from_point(
+    *,
+    chunk_id: str,
+    score: float,
+):
+    point = create_point()
+    point.score = score
+    point.payload[
+        "chunk_id"
+    ] = chunk_id
+
+    from app.retrieval.medonto_retriever import (
+        _convert_points,
+    )
+
+    return _convert_points(
+        [point]
+    )[0]
+
+
+def test_rrf_keeps_baseline_only_candidate() -> None:
+    baseline = [
+        _chunk_from_point(
+            chunk_id="BASELINE-ONLY",
+            score=0.80,
+        )
+    ]
+
+    ontology = [
+        _chunk_from_point(
+            chunk_id="ONTOLOGY-ONLY",
+            score=0.90,
+        )
+    ]
+
+    fused = _fuse_ranked_chunks(
+        baseline,
+        ontology,
+        top_k=5,
+    )
+
+    ids = [
+        chunk.chunk_id
+        for chunk in fused
+    ]
+
+    assert "BASELINE-ONLY" in ids
+    assert "ONTOLOGY-ONLY" in ids
+
+
+def test_rrf_deduplicates_shared_chunk() -> None:
+    baseline = [
+        _chunk_from_point(
+            chunk_id="SHARED",
+            score=0.70,
+        )
+    ]
+
+    ontology = [
+        _chunk_from_point(
+            chunk_id="SHARED",
+            score=0.90,
+        )
+    ]
+
+    fused = _fuse_ranked_chunks(
+        baseline,
+        ontology,
+        top_k=5,
+    )
+
+    assert len(fused) == 1
+
+    assert (
+        fused[0].chunk_id
+        == "SHARED"
+    )
+
+
+def test_rrf_rewards_overlap() -> None:
+    baseline = [
+        _chunk_from_point(
+            chunk_id="BASELINE-FIRST",
+            score=0.90,
+        ),
+        _chunk_from_point(
+            chunk_id="SHARED",
+            score=0.80,
+        ),
+    ]
+
+    ontology = [
+        _chunk_from_point(
+            chunk_id="ONTOLOGY-FIRST",
+            score=0.95,
+        ),
+        _chunk_from_point(
+            chunk_id="SHARED",
+            score=0.70,
+        ),
+    ]
+
+    fused = _fuse_ranked_chunks(
+        baseline,
+        ontology,
+        top_k=3,
+    )
+
+    assert (
+        fused[0].chunk_id
+        == "SHARED"
+    )
+
+
+def test_rrf_trims_to_top_k() -> None:
+    baseline = [
+        _chunk_from_point(
+            chunk_id="A",
+            score=0.90,
+        ),
+        _chunk_from_point(
+            chunk_id="B",
+            score=0.80,
+        ),
+    ]
+
+    ontology = [
+        _chunk_from_point(
+            chunk_id="C",
+            score=0.95,
+        ),
+        _chunk_from_point(
+            chunk_id="D",
+            score=0.85,
+        ),
+    ]
+
+    fused = _fuse_ranked_chunks(
+        baseline,
+        ontology,
+        top_k=2,
+    )
+
+    assert len(fused) == 2
