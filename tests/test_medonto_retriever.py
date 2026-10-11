@@ -24,8 +24,8 @@ from app.retrieval.medonto_retriever import (
 def create_settings() -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
-        openrouter_model="test-model",
+        gemini_api_key="test-key",
+        gemini_model="test-model",
         qdrant_url=(
             "https://example.qdrant.io"
         ),

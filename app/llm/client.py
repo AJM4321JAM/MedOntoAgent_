@@ -35,29 +35,29 @@ class LLMServiceError(RuntimeError):
 T = TypeVar("T")
 
 
-def create_openrouter_client(
+def create_llm_client(
     settings: Settings | None = None,
 ) -> OpenAI:
     """
-    Create an OpenAI-compatible client pointed at OpenRouter.
+    Create an OpenAI-compatible client pointed at Gemini.
 
     SDK retries are deliberately disabled. MedOntoAgent owns
     its retry policy explicitly.
     """
     settings = settings or get_settings()
 
-    if settings.openrouter_api_key is None:
+    if settings.gemini_api_key is None:
         raise LLMConfigurationError(
-            "OPENROUTER_API_KEY is not configured."
+            "GEMINI_API_KEY is not configured."
         )
 
     return OpenAI(
         api_key=(
             settings
-            .openrouter_api_key
+            .gemini_api_key
             .get_secret_value()
         ),
-        base_url=settings.openrouter_base_url,
+        base_url=settings.gemini_base_url,
         timeout=settings.llm_timeout_seconds,
         max_retries=0,
     )
@@ -174,7 +174,7 @@ def _call_with_one_retry(
                 raise LLMServiceError(
                     (
                         f"{operation_name} could not connect "
-                        "to OpenRouter after one retry."
+                        "to Gemini after one retry."
                     )
                 ) from exc
 
@@ -183,7 +183,7 @@ def _call_with_one_retry(
         except APIStatusError as exc:
             raise LLMServiceError(
                 (
-                    "OpenRouter returned HTTP "
+                    "LLM provider returned HTTP "
                     f"{exc.status_code} during "
                     f"{operation_name}."
                 )
@@ -199,15 +199,15 @@ def run_llm_test(
 ) -> LLMTestResponse:
     """
     Make one structured connectivity test to the configured
-    OpenRouter model.
+    Gemini model.
 
-    Because openrouter/free can route among free models, one
+    Because provider responses can occasionally be malformed, one
     bounded second attempt is allowed if the first response is
     malformed or does not match the expected schema.
     """
     settings = settings or get_settings()
 
-    client = create_openrouter_client(
+    client = create_llm_client(
         settings
     )
 
@@ -226,7 +226,7 @@ def run_llm_test(
                     .completions
                     .create(
                         model=(
-                            settings.openrouter_model
+                            settings.gemini_model
                         ),
                         messages=[
                             {
@@ -258,7 +258,7 @@ def run_llm_test(
 
             if not completion.choices:
                 raise LLMServiceError(
-                    "OpenRouter returned no choices."
+                    "Gemini returned no choices."
                 )
 
             content = (
@@ -271,7 +271,7 @@ def run_llm_test(
             if not content:
                 raise LLMServiceError(
                     (
-                        "OpenRouter returned an empty "
+                        "Gemini returned an empty "
                         "model response."
                     )
                 )

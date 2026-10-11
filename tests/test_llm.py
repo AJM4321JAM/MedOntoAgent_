@@ -10,14 +10,14 @@ from app.llm.client import (
 def test_missing_api_key_is_rejected() -> None:
     settings = Settings(
         _env_file=None,
-        openrouter_api_key=None,
+        gemini_api_key=None,
     )
 
     try:
         run_llm_test(settings)
 
     except LLMConfigurationError as exc:
-        assert "OPENROUTER_API_KEY" in str(exc)
+        assert "GEMINI_API_KEY" in str(exc)
 
     else:
         raise AssertionError(
@@ -48,7 +48,7 @@ def test_structured_llm_response_is_valid(
 
     settings = Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
+        gemini_api_key="test-key",
     )
 
     result = run_llm_test(settings)

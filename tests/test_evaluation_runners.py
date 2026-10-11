@@ -33,8 +33,8 @@ from evals.medonto_runner import (
 def settings() -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
-        openrouter_model="test-model",
+        gemini_api_key="test-key",
+        gemini_model="test-model",
         qdrant_url=None,
         qdrant_api_key=None,
     )

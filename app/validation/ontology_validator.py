@@ -12,7 +12,7 @@ from app.llm.client import (
     LLMServiceError,
     _call_with_one_retry,
     _extract_json_object,
-    create_openrouter_client,
+    create_llm_client,
 )
 from app.llm.prompts import (
     ONTOLOGY_VALIDATION_SYSTEM_PROMPT,
@@ -86,7 +86,7 @@ def _judge_constraint(
     recommendation_condition: str | None,
     settings: Settings,
 ) -> OntologyJudgeOutput:
-    client = create_openrouter_client(
+    client = create_llm_client(
         settings
     )
 
@@ -122,7 +122,7 @@ Return only the required JSON object.
                         .create(
                             model=(
                                 settings
-                                .openrouter_model
+                                .gemini_model
                             ),
                             messages=[
                                 {
@@ -268,7 +268,7 @@ def validate_ontology_compliance(
             "llm.ontology_validation",
             attributes={
                 "medonto.model": (
-                    settings.openrouter_model
+                    settings.gemini_model
                 ),
                 "medonto.operation": (
                     "ontology_validation"

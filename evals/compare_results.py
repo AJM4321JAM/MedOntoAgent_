@@ -33,7 +33,7 @@ class EvaluationComparisonError(
 
 
 SHARED_CONFIGURATION_KEYS = (
-    "openrouter_model",
+    "generation_model",
     "embedding_model",
     "embedding_dimensions",
     "retrieval_top_k",

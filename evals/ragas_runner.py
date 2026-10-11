@@ -165,24 +165,24 @@ def _create_ragas_components(
             )
         ) from exc
 
-    if settings.openrouter_api_key is None:
+    if settings.gemini_api_key is None:
         raise RagasEvaluationError(
             (
-                "OPENROUTER_API_KEY is required "
+                "GEMINI_API_KEY is required "
                 "for Ragas semantic evaluation."
             )
         )
 
     api_key = (
         settings
-        .openrouter_api_key
+        .gemini_api_key
         .get_secret_value()
     )
 
     client = AsyncOpenAI(
         api_key=api_key,
         base_url=(
-            settings.openrouter_base_url
+            settings.gemini_base_url
         ),
         timeout=(
             settings.llm_timeout_seconds
@@ -324,6 +324,44 @@ def _safe_metric_error(
     )
 
 
+async def _metric_ascore_with_one_retry(
+    metric,
+    **kwargs,
+):
+    """
+    Run one Ragas metric with one bounded retry for
+    transient Instructor/provider failures.
+    """
+    total_attempts = 2
+
+    for attempt in range(
+        1,
+        total_attempts + 1,
+    ):
+        try:
+            return await metric.ascore(
+                **kwargs
+            )
+
+        except Exception as exc:
+            retryable = (
+                type(exc).__name__
+                == "InstructorRetryException"
+            )
+
+            if (
+                not retryable
+                or attempt == total_attempts
+            ):
+                raise
+
+            await asyncio.sleep(3)
+
+    raise RuntimeError(
+        "Ragas metric failed unexpectedly."
+    )
+
+
 async def _score_one_question(
     *,
     result_record,
@@ -391,7 +429,8 @@ async def _score_one_question(
     if result_record.retrieved_contexts:
         try:
             metric_result = (
-                await faithfulness_metric.ascore(
+                await _metric_ascore_with_one_retry(
+                    faithfulness_metric,
                     user_input=(
                         result_record.question
                     ),
@@ -433,7 +472,8 @@ async def _score_one_question(
     ):
         try:
             metric_result = (
-                await context_precision_metric.ascore(
+                await _metric_ascore_with_one_retry(
+                    context_precision_metric,
                     user_input=(
                         result_record.question
                     ),
@@ -479,7 +519,8 @@ async def _score_one_question(
 
     try:
         metric_result = (
-            await answer_relevancy_metric.ascore(
+            await _metric_ascore_with_one_retry(
+                answer_relevancy_metric,
                 user_input=(
                     result_record.question
                 ),

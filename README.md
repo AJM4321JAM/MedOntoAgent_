@@ -49,7 +49,7 @@ The current implementation includes:
 - versioned evaluation result artifacts,
 - exact retrieved-context capture for offline evaluation,
 - deterministic baseline-versus-MedOnto comparison metrics,
-- isolated Ragas 0.4.3 semantic evaluation,
+- isolated Ragas 0.3.9 semantic evaluation,
 - Faithfulness evaluation,
 - Context Precision with Reference evaluation,
 - Answer Relevancy evaluation,
@@ -159,11 +159,11 @@ A safe template is provided in `.env.example`.
 
 Real API keys and credentials must never be committed to Git.
 
-Development LLM access currently uses the configured OpenRouter model.
+Development LLM access currently uses the configured Google Gemini model through its OpenAI-compatible API.
 
 Offline semantic evaluation uses the independently configurable `RAGAS_EVALUATOR_MODEL`.
 
-The current zero-cost development default is `openrouter/free`.
+The current zero-cost generation default is `gemini-3.5-flash-lite`.
 
 Embeddings are generated locally and therefore do not require a paid embedding API.
 
@@ -1102,11 +1102,11 @@ Metrics without sufficient golden annotations are reported as not applicable rat
 
 The deterministic citation metrics measure agreement with annotated evidence. They do not replace semantic citation-support validation.
 
-Development evaluation currently uses the configured OpenRouter free route. Temporary provider rate limits are preserved as `ERROR` outcomes rather than hidden.
+Development evaluation currently uses the configured Gemini model. Temporary provider rate limits are preserved as `ERROR` outcomes rather than hidden.
 
 ## Semantic Evaluation With Ragas
 
-Phase 23 adds an independent offline semantic-evaluation layer using Ragas 0.4.3.
+The offline semantic-evaluation layer uses Ragas 0.3.9.
 
 Implemented metrics are:
 
@@ -1137,8 +1137,8 @@ The evaluator uses:
 
 ```text
 LLM judge:
-OpenRouter
-RAGAS_EVALUATOR_MODEL=openrouter/free
+Google Gemini
+RAGAS_EVALUATOR_MODEL=gemini-3.5-flash-lite
 
 Embedding component:
 sentence-transformers/all-MiniLM-L6-v2
@@ -1157,12 +1157,12 @@ using:
 requirements-ragas.txt
 ```
 
-This separation is necessary because Ragas 0.4.3 requires a dependency stack incompatible with the OpenAI SDK version used by the main MedOntoAgent environment.
+The separate Ragas environment pins the tested semantic-evaluation dependencies independently from the main MedOntoAgent application environment.
 
 The current Ragas environment includes:
 
 ```text
-ragas==0.4.3
+ragas==0.3.9
 openai==2.8.1
 sentence-transformers==6.1.0
 pydantic-settings==2.15.0
@@ -1177,7 +1177,7 @@ The evaluator correctly persisted safe metric failures and reported zero scored 
 
 Therefore the smoke-run result is an operational provider observation, not evidence about baseline or MedOntoAgent quality.
 
-Formal semantic metric values remain pending a successful evaluator run.
+A subsequent Gemini-based Ragas smoke test successfully produced Faithfulness, Context Precision with Reference, and Answer Relevancy scores for the eligible answered record.
 
 ## Evaluation Layers
 
@@ -1384,4 +1384,3 @@ Runtime validation confirmed:
 - raw secrets were not embedded in the container image or task definition
 
 The production validation infrastructure was torn down after testing to minimize ongoing AWS cost. Reusable deployment definitions remain in `infrastructure/aws/`.
-

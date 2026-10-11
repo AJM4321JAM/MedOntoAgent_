@@ -18,7 +18,7 @@ from app.config.settings import (
 from app.llm.client import (
     LLMServiceError,
     _call_with_one_retry,
-    create_openrouter_client,
+    create_llm_client,
 )
 from app.llm.prompts import (
     CONCEPT_EXTRACTION_SYSTEM_PROMPT,
@@ -579,7 +579,7 @@ def extract_candidate_concepts(
             "Concept extraction query cannot be empty."
         )
 
-    client = create_openrouter_client(
+    client = create_llm_client(
         settings
     )
 
@@ -595,7 +595,7 @@ def extract_candidate_concepts(
                 "llm.concept_extraction",
                 attributes={
                     "medonto.model": (
-                        settings.openrouter_model
+                        settings.gemini_model
                     ),
                     "medonto.operation": (
                         "concept_extraction"
@@ -609,7 +609,7 @@ def extract_candidate_concepts(
                         .completions
                         .create(
                             model=(
-                                settings.openrouter_model
+                                settings.gemini_model
                             ),
                             messages=[
                                 {

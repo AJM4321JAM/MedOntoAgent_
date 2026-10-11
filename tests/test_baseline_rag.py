@@ -24,8 +24,8 @@ from app.models.retrieval import (
 def create_test_settings() -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
-        openrouter_model="test-model",
+        gemini_api_key="test-key",
+        gemini_model="test-model",
         embedding_model="test-embedding-model",
         embedding_dimensions=4,
         embedding_batch_size=2,
@@ -114,7 +114,7 @@ def test_format_evidence_contains_source_id() -> None:
 
 
 @patch(
-    "app.llm.baseline.create_openrouter_client"
+    "app.llm.baseline.create_llm_client"
 )
 def test_no_evidence_abstains_without_llm_call(
     mock_create_client: MagicMock,
@@ -144,7 +144,7 @@ def test_no_evidence_abstains_without_llm_call(
 
 
 @patch(
-    "app.llm.baseline.create_openrouter_client"
+    "app.llm.baseline.create_llm_client"
 )
 def test_answered_output_with_valid_citation(
     mock_create_client: MagicMock,
@@ -208,7 +208,7 @@ def test_answered_output_with_valid_citation(
 
 
 @patch(
-    "app.llm.baseline.create_openrouter_client"
+    "app.llm.baseline.create_llm_client"
 )
 def test_invented_citation_is_rejected(
     mock_create_client: MagicMock,
@@ -259,7 +259,7 @@ def test_invented_citation_is_rejected(
 
 
 @patch(
-    "app.llm.baseline.create_openrouter_client"
+    "app.llm.baseline.create_llm_client"
 )
 def test_answered_response_requires_citation(
     mock_create_client: MagicMock,
@@ -306,7 +306,7 @@ def test_answered_response_requires_citation(
 
 
 @patch(
-    "app.llm.baseline.create_openrouter_client"
+    "app.llm.baseline.create_llm_client"
 )
 def test_abstained_response_rejects_citations(
     mock_create_client: MagicMock,

@@ -164,8 +164,8 @@ def evaluation_configuration(
     Build a reproducible configuration snapshot without secrets.
     """
     return {
-        "openrouter_model": (
-            settings.openrouter_model
+        "generation_model": (
+            settings.gemini_model
         ),
         "embedding_model": (
             settings.embedding_model

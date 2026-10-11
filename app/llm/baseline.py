@@ -7,7 +7,7 @@ from app.config.settings import Settings, get_settings
 from app.llm.client import (
     LLMServiceError,
     _call_with_one_retry,
-    create_openrouter_client,
+    create_llm_client,
 )
 from app.llm.prompts import (
     BASELINE_RAG_SYSTEM_PROMPT,
@@ -247,7 +247,7 @@ def _request_baseline_completion(
             .chat
             .completions
             .create(
-                model=settings.openrouter_model,
+                model=settings.gemini_model,
                 messages=[
                     {
                         "role": "system",
@@ -321,7 +321,7 @@ def generate_baseline_answer(
         evidence=evidence,
     )
 
-    client = create_openrouter_client(
+    client = create_llm_client(
         settings
     )
 

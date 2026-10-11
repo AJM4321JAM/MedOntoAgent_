@@ -87,7 +87,7 @@ def dataset() -> EvaluationDataset:
 
 def configuration() -> dict:
     return {
-        "openrouter_model": (
+        "generation_model": (
             "test-model"
         ),
         "embedding_model": (

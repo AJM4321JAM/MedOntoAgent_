@@ -1,4 +1,4 @@
-ragas==0.4.3
+ragas==0.3.9
 openai==2.8.1
 sentence-transformers==6.1.0
 pydantic-settings==2.15.0

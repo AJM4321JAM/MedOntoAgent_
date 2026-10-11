@@ -8,7 +8,7 @@ from app.llm.client import (
     LLMServiceError,
     _call_with_one_retry,
     _extract_json_object,
-    create_openrouter_client,
+    create_llm_client,
 )
 from app.llm.prompts import (
     MEDONTO_GENERATION_SYSTEM_PROMPT,
@@ -404,7 +404,7 @@ def generate_medonto_draft(
             )
         )
 
-    client = create_openrouter_client(
+    client = create_llm_client(
         settings
     )
 
@@ -433,7 +433,7 @@ def generate_medonto_draft(
                 "llm.medonto_generation",
                 attributes={
                     "medonto.model": (
-                        settings.openrouter_model
+                        settings.gemini_model
                     ),
                     "medonto.operation": (
                         "generation"
@@ -449,7 +449,7 @@ def generate_medonto_draft(
                             .create(
                                 model=(
                                     settings
-                                    .openrouter_model
+                                    .gemini_model
                                 ),
                                 messages=[
                                     {

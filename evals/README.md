@@ -212,7 +212,7 @@ The deterministic comparator verifies reproducibility-critical configuration bef
 
 ## Semantic Evaluation With Ragas
 
-Phase 23 adds an independent offline semantic-evaluation layer using Ragas 0.4.3.
+Phase 23 adds an independent offline semantic-evaluation layer using Ragas 0.3.9.
 
 Implemented semantic metrics are:
 
@@ -321,7 +321,7 @@ They are not converted to zero.
 
 ## Running Ragas
 
-Ragas is intentionally isolated from the main MedOntoAgent Python environment because Ragas 0.4.3 is not dependency-compatible with the OpenAI SDK version used by the application.
+Ragas is intentionally isolated from the main MedOntoAgent Python environment because Ragas 0.3.9 is not dependency-compatible with the OpenAI SDK version used by the application.
 
 Main application:
 
@@ -334,7 +334,7 @@ Semantic evaluator:
 
 ```text
 .ragas-venv
-Ragas 0.4.3
+Ragas 0.3.9
 OpenAI SDK 2.8.1
 ```
 
@@ -354,7 +354,7 @@ pydantic-settings==2.15.0
 langchain-community==0.3.31
 ```
 
-The `langchain-community` compatibility pin is required by the installed Ragas 0.4.3 dependency stack.
+The `langchain-community` compatibility pin is required by the installed Ragas 0.3.9 dependency stack.
 
 The evaluator must be run from `.ragas-venv`.
 
@@ -377,14 +377,14 @@ RAGAS_EVALUATOR_MODEL
 The current zero-cost development default is:
 
 ```text
-openrouter/free
+gemini-3.5-flash-lite
 ```
 
 The evaluator reuses:
 
 ```text
-OPENROUTER_API_KEY
-OPENROUTER_BASE_URL
+GEMINI_API_KEY
+GEMINI_BASE_URL
 ```
 
 No separate paid evaluator API is required.
@@ -413,7 +413,7 @@ Raw provider responses, prompts, retrieved clinical text, API credentials, and p
 
 A real Ragas smoke test successfully initialized:
 
-- Ragas 0.4.3,
+- Ragas 0.3.9,
 - the Ragas metric classes,
 - the OpenRouter-compatible asynchronous client,
 - the local Sentence Transformers embedding model,

@@ -18,7 +18,7 @@ def create_test_settings(
 ) -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key=None,
+        gemini_api_key=None,
         embedding_model="test-model",
         embedding_dimensions=dimensions,
         embedding_batch_size=batch_size,

@@ -48,8 +48,8 @@ class FakeMetric:
 def settings() -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
-        openrouter_model="test-model",
+        gemini_api_key="test-key",
+        gemini_model="test-model",
         ragas_evaluator_model="openrouter/free",
         embedding_model=(
             "sentence-transformers/"
@@ -117,7 +117,7 @@ def run_artifact() -> EvaluationRunArtifact:
         dataset_version="1.0",
         corpus_version="synthetic-v1",
         configuration={
-            "openrouter_model": "test-model",
+            "generation_model": "test-model",
             "embedding_model": (
                 "test-embedding-model"
             ),

@@ -20,7 +20,7 @@ router = APIRouter(
 )
 def test_llm_connection() -> LLMTestResponse:
     """
-    Temporary development endpoint used to verify OpenRouter connectivity.
+    Temporary development endpoint used to verify Gemini connectivity.
 
     This endpoint will not be part of the final clinical query workflow.
     """

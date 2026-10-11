@@ -38,8 +38,8 @@ from app.models.retrieval import (
 def create_settings() -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
-        openrouter_model="test-model",
+        gemini_api_key="test-key",
+        gemini_model="test-model",
     )
 
 
@@ -331,7 +331,7 @@ def test_omitted_constraint_is_rejected() -> None:
 
 @patch(
     "app.llm.medonto_generation."
-    "create_openrouter_client"
+    "create_llm_client"
 )
 def test_zero_evidence_abstains_without_llm(
     mock_create_client: MagicMock,

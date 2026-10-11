@@ -51,7 +51,7 @@ def create_settings() -> Settings:
         _env_file=None,
         qdrant_url=None,
         qdrant_api_key=None,
-        openrouter_api_key=None,
+        gemini_api_key=None,
     )
 
 

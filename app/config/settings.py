@@ -90,9 +90,17 @@ class Settings(BaseSettings):
     # Free OpenRouter routing for development.
     openrouter_model: str = "openrouter/free"
 
+    gemini_api_key: SecretStr | None = None
+
+    gemini_base_url: str = (
+        "https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+
+    gemini_model: str = "gemini-3.5-flash-lite"
+
     # Offline semantic-evaluation judge.
     # Kept separately configurable from the application model.
-    ragas_evaluator_model: str = "openrouter/free"
+    ragas_evaluator_model: str = "gemini-3.5-flash-lite"
 
     otel_enabled: bool = False
 

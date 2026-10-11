@@ -22,7 +22,7 @@ def create_test_settings() -> Settings:
 
     return Settings(
         _env_file=None,
-        openrouter_api_key=None,
+        gemini_api_key=None,
         qdrant_url=(
             "https://example.qdrant.io"
         ),

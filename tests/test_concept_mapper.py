@@ -26,8 +26,8 @@ from app.ontology.ontology_loader import (
 def create_test_settings() -> Settings:
     return Settings(
         _env_file=None,
-        openrouter_api_key="test-key",
-        openrouter_model="test-model",
+        gemini_api_key="test-key",
+        gemini_model="test-model",
     )
 
 
@@ -169,7 +169,7 @@ def test_direct_query_scan_finds_known_concepts() -> None:
 
 @patch(
     "app.ontology.concept_mapper."
-    "create_openrouter_client"
+    "create_llm_client"
 )
 @patch(
     "app.ontology.concept_mapper."

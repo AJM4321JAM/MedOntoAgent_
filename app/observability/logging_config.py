@@ -6,6 +6,7 @@ SENSITIVE_MARKERS = (
     "bearer ",
     "x-medonto-admin-key",
     "openrouter_api_key",
+    "gemini_api_key",
     "qdrant_api_key",
     "admin_api_key",
 )
