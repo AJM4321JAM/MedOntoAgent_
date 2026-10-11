@@ -6,8 +6,8 @@ from datetime import (
 )
 from pathlib import Path
 
-from app.agent.graph import (
-    medonto_graph,
+from app.agent.execution import (
+    execute_medonto,
 )
 from app.config.settings import (
     Settings,
@@ -292,14 +292,9 @@ def run_medonto_dataset(
         )
 
         try:
-            state = (
-                medonto_graph.invoke(
-                    {
-                        "query": (
-                            question.question
-                        )
-                    }
-                )
+            execution = execute_medonto(
+                question.question,
+                settings=settings,
             )
 
             latency_ms = (
@@ -309,6 +304,117 @@ def run_medonto_dataset(
                 )
                 * 1000.0
             )
+
+            if (
+                execution.execution_mode
+                == "BASELINE_FALLBACK"
+            ):
+                baseline_response = (
+                    execution.baseline_response
+                )
+
+                if baseline_response is None:
+                    raise RuntimeError(
+                        (
+                            "Fallback execution did "
+                            "not return a baseline "
+                            "response."
+                        )
+                    )
+
+                system_status = (
+                    baseline_response.status
+                )
+
+                result = (
+                    EvaluationResultRecord(
+                        question_id=(
+                            question.question_id
+                        ),
+                        category=(
+                            question.category
+                        ),
+                        question=(
+                            question.question
+                        ),
+                        expected_behavior=(
+                            question.expected_behavior
+                        ),
+                        system="MEDONTO",
+                        execution_mode=(
+                            "BASELINE_FALLBACK"
+                        ),
+                        system_status=(
+                            system_status
+                        ),
+                        behavior_match=(
+                            expected_behavior_matches(
+                                expected_behavior=(
+                                    question
+                                    .expected_behavior
+                                ),
+                                system_status=(
+                                    system_status
+                                ),
+                            )
+                        ),
+                        answer=(
+                            baseline_response.answer
+                        ),
+                        citation_chunk_ids=[
+                            citation.chunk_id
+                            for citation
+                            in (
+                                baseline_response
+                                .citations
+                            )
+                        ],
+                        citation_document_ids=(
+                            baseline_response
+                            .citation_document_ids
+                        ),
+                        retrieved_chunk_ids=(
+                            baseline_response
+                            .retrieved_chunk_ids
+                        ),
+                        retrieved_document_ids=(
+                            baseline_response
+                            .retrieved_document_ids
+                        ),
+                        retrieved_contexts=(
+                            baseline_response
+                            .retrieved_contexts
+                        ),
+                        ontology_constraints=[],
+                        used_ontology_filter=False,
+                        retrieval_relaxed=False,
+                        retry_count=None,
+                        latency_ms=(
+                            latency_ms
+                        ),
+                        error_message=None,
+                        fallback_reason=(
+                            execution
+                            .fallback_reason
+                        ),
+                    )
+                )
+
+                results.append(
+                    result
+                )
+
+                continue
+
+            state = execution.medonto_state
+
+            if state is None:
+                raise RuntimeError(
+                    (
+                        "MEDONTO execution did "
+                        "not return graph state."
+                    )
+                )
 
             orchestration_status = (
                 state.get(
@@ -388,6 +494,7 @@ def run_medonto_dataset(
                         question.expected_behavior
                     ),
                     system="MEDONTO",
+                    execution_mode="MEDONTO",
                     system_status=(
                         system_status
                     ),
@@ -463,6 +570,7 @@ def run_medonto_dataset(
                     error_message=(
                         error_message
                     ),
+                    fallback_reason=None,
                 )
             )
 
@@ -490,6 +598,7 @@ def run_medonto_dataset(
                         question.expected_behavior
                     ),
                     system="MEDONTO",
+                    execution_mode="MEDONTO",
                     system_status="ERROR",
                     behavior_match=False,
                     answer=None,
@@ -509,6 +618,7 @@ def run_medonto_dataset(
                         "Execution failed: "
                         f"{type(exc).__name__}"
                     ),
+                    fallback_reason=None,
                 )
             )
 

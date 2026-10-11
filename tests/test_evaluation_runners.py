@@ -11,6 +11,9 @@ from app.config.settings import (
 from app.models.evaluation import (
     EvaluationDataset,
 )
+from app.agent.execution import (
+    MedOntoExecution,
+)
 from app.models.responses import (
     BaselineQueryResponse,
     CitationReference,
@@ -309,8 +312,13 @@ def test_medonto_runner_records_graph_metadata() -> None:
 
     with patch(
         "evals.medonto_runner."
-        "medonto_graph.invoke",
-        return_value=state,
+        "execute_medonto",
+        return_value=(
+            MedOntoExecution(
+                execution_mode="MEDONTO",
+                medonto_state=state,
+            )
+        ),
     ):
         artifact = (
             run_medonto_dataset(
@@ -556,4 +564,126 @@ def test_run_artifact_can_be_persisted(
     assert (
         "qdrant_api_key"
         not in data["configuration"]
+    )
+
+
+
+def test_medonto_runner_records_baseline_fallback() -> None:
+    response = BaselineQueryResponse(
+        query=(
+            "Can Example "
+            "Antihypertensive Class "
+            "be used during pregnancy?"
+        ),
+        answer="Synthetic fallback answer.",
+        citations=[
+            CitationReference(
+                chunk_id=(
+                    "DOC-TEST-CHUNK-0000"
+                )
+            )
+        ],
+        citation_document_ids=[
+            "DOC-TEST"
+        ],
+        retrieved_chunk_ids=[
+            "DOC-TEST-CHUNK-0000"
+        ],
+        retrieved_document_ids=[
+            "DOC-TEST"
+        ],
+        retrieved_contexts=[
+            "Synthetic retrieved context."
+        ],
+        status="ANSWERED",
+    )
+
+    execution = MedOntoExecution(
+        execution_mode=(
+            "BASELINE_FALLBACK"
+        ),
+        baseline_response=response,
+        fallback_reason=(
+            "MedOntoGenerationError"
+        ),
+    )
+
+    with patch(
+        "evals.medonto_runner."
+        "execute_medonto",
+        return_value=execution,
+    ):
+        artifact = (
+            run_medonto_dataset(
+                one_question_dataset(),
+                settings=settings(),
+            )
+        )
+
+    result = artifact.results[0]
+
+    assert (
+        result.system
+        == "MEDONTO"
+    )
+
+    assert (
+        result.execution_mode
+        == "BASELINE_FALLBACK"
+    )
+
+    assert (
+        result.system_status
+        == "ANSWERED"
+    )
+
+    assert (
+        result.behavior_match
+        is True
+    )
+
+    assert (
+        result.answer
+        == "Synthetic fallback answer."
+    )
+
+    assert (
+        result.citation_chunk_ids
+        == [
+            "DOC-TEST-CHUNK-0000"
+        ]
+    )
+
+    assert (
+        result.citation_document_ids
+        == [
+            "DOC-TEST"
+        ]
+    )
+
+    assert (
+        result.retrieved_contexts
+        == [
+            "Synthetic retrieved context."
+        ]
+    )
+
+    assert (
+        result.ontology_constraints
+        == []
+    )
+
+    assert (
+        result.used_ontology_filter
+        is False
+    )
+
+    assert (
+        result.fallback_reason
+        == "MedOntoGenerationError"
+    )
+
+    assert (
+        result.error_message
+        is None
     )
