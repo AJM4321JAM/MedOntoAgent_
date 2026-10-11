@@ -9,11 +9,16 @@ from fastapi.testclient import (
     TestClient,
 )
 
+from app.agent.execution import (
+    MedOntoExecution,
+)
 from app.main import app
 from app.models.documents import (
     SourceAuthority,
 )
 from app.models.responses import (
+    BaselineQueryResponse,
+    CitationReference,
     MedOntoClaim,
     MedOntoDraftOutput,
 )
@@ -152,13 +157,18 @@ def create_abstained_state() -> dict:
 
 @patch(
     "app.api.routes_query."
-    "medonto_graph.invoke"
+    "execute_medonto"
 )
 def test_verified_query_returns_safe_public_response(
     mock_invoke,
 ) -> None:
     mock_invoke.return_value = (
-        create_verified_state()
+        MedOntoExecution(
+            execution_mode="MEDONTO",
+            medonto_state=(
+                create_verified_state()
+            ),
+        )
     )
 
     response = client.post(
@@ -291,13 +301,18 @@ def test_verified_query_returns_safe_public_response(
 
 @patch(
     "app.api.routes_query."
-    "medonto_graph.invoke"
+    "execute_medonto"
 )
 def test_abstained_query_returns_no_citations(
     mock_invoke,
 ) -> None:
     mock_invoke.return_value = (
-        create_abstained_state()
+        MedOntoExecution(
+            execution_mode="MEDONTO",
+            medonto_state=(
+                create_abstained_state()
+            ),
+        )
     )
 
     response = client.post(
@@ -351,7 +366,7 @@ def test_abstained_query_returns_no_citations(
 
 @patch(
     "app.api.routes_query."
-    "medonto_graph.invoke"
+    "execute_medonto"
 )
 def test_invalid_request_is_rejected_before_graph(
     mock_invoke,
@@ -373,7 +388,7 @@ def test_invalid_request_is_rejected_before_graph(
 
 @patch(
     "app.api.routes_query."
-    "medonto_graph.invoke"
+    "execute_medonto"
 )
 def test_internal_exception_is_not_exposed(
     mock_invoke,
@@ -427,3 +442,106 @@ def test_internal_exception_is_not_exposed(
         "API key"
         not in serialized
     )
+
+
+@patch(
+    "app.api.routes_query."
+    "execute_medonto"
+)
+def test_operational_failure_returns_baseline_fallback(
+    mock_execute,
+) -> None:
+    retrieval = create_retrieval()
+    chunk = retrieval.retrieved_chunks[0]
+
+    mock_execute.return_value = (
+        MedOntoExecution(
+            execution_mode=(
+                "BASELINE_FALLBACK"
+            ),
+            baseline_response=(
+                BaselineQueryResponse(
+                    query=(
+                        "Can Treatment X be used "
+                        "in Group Y?"
+                    ),
+                    answer=(
+                        "Baseline supported answer."
+                    ),
+                    citations=[
+                        CitationReference(
+                            chunk_id=chunk.chunk_id,
+                        )
+                    ],
+                    citation_document_ids=[
+                        chunk.document_id,
+                    ],
+                    retrieved_chunk_ids=[
+                        chunk.chunk_id,
+                    ],
+                    retrieved_document_ids=[
+                        chunk.document_id,
+                    ],
+                    retrieved_contexts=[
+                        chunk.text,
+                    ],
+                    retrieved_chunks=[
+                        chunk,
+                    ],
+                    status="ANSWERED",
+                )
+            ),
+            fallback_reason=(
+                "MedOntoGenerationError"
+            ),
+        )
+    )
+
+    response = client.post(
+        "/query",
+        json={
+            "query": (
+                "Can Treatment X be used "
+                "in Group Y?"
+            )
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["status"] == "ANSWERED"
+
+    assert (
+        body["execution_mode"]
+        == "BASELINE_FALLBACK"
+    )
+
+    assert (
+        body["answer"]
+        == "Baseline supported answer."
+    )
+
+    assert len(body["citations"]) == 1
+
+    assert (
+        body["citations"][0]["chunk_id"]
+        == "CHUNK-1"
+    )
+
+    assert (
+        body["citations"][0]["document_id"]
+        == "DOC-1"
+    )
+
+    assert (
+        body["ontology_constraints"]
+        == []
+    )
+
+    assert body["retrieval"] == {
+        "result_count": 1,
+        "used_ontology_filter": False,
+        "retrieval_relaxed": False,
+    }

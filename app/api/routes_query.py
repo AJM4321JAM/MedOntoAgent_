@@ -7,13 +7,14 @@ from fastapi import (
     status,
 )
 
-from app.agent.graph import (
-    medonto_graph,
+from app.agent.execution import (
+    execute_medonto,
 )
 from app.models.requests import (
     QueryRequest,
 )
 from app.models.responses import (
+    BaselineQueryResponse,
     MedOntoQueryResponse,
     PublicCitation,
     PublicOntologyConstraint,
@@ -267,6 +268,80 @@ def _build_verified_citations(
     return citations
 
 
+def _build_fallback_public_response(
+    *,
+    query: str,
+    baseline_response: BaselineQueryResponse,
+) -> MedOntoQueryResponse:
+    """
+    Convert a conventional baseline fallback into the public
+    MedOnto response contract without claiming ontology verification.
+    """
+    chunks_by_id = {
+        chunk.chunk_id: chunk
+        for chunk
+        in baseline_response.retrieved_chunks
+    }
+
+    citations: list[
+        PublicCitation
+    ] = []
+
+    if baseline_response.status == "ANSWERED":
+        for citation_reference in (
+            baseline_response.citations
+        ):
+            chunk = chunks_by_id.get(
+                citation_reference.chunk_id
+            )
+
+            if chunk is None:
+                raise MedOntoAPIError(
+                    (
+                        "Baseline fallback referenced "
+                        "a chunk absent from retrieval."
+                    )
+                )
+
+            citations.append(
+                PublicCitation(
+                    chunk_id=chunk.chunk_id,
+                    document_id=(
+                        chunk.document_id
+                    ),
+                    title=chunk.title,
+                    section_title=(
+                        chunk.section_title
+                    ),
+                    page_number=(
+                        chunk.page_number
+                    ),
+                    source_url=(
+                        chunk.source_url
+                    ),
+                )
+            )
+
+    return MedOntoQueryResponse(
+        query=query,
+        answer=baseline_response.answer,
+        status=baseline_response.status,
+        execution_mode=(
+            "BASELINE_FALLBACK"
+        ),
+        citations=citations,
+        ontology_constraints=[],
+        retrieval=RetrievalSummary(
+            result_count=len(
+                baseline_response
+                .retrieved_chunks
+            ),
+            used_ontology_filter=False,
+            retrieval_relaxed=False,
+        ),
+    )
+
+
 def _build_public_response(
     *,
     query: str,
@@ -316,6 +391,7 @@ def _build_public_response(
             query=query,
             answer=draft.answer,
             status="VERIFIED",
+            execution_mode="MEDONTO",
             citations=(
                 _build_verified_citations(
                     state
@@ -351,6 +427,7 @@ def _build_public_response(
                 abstention_reason
             ),
             status="ABSTAINED",
+            execution_mode="MEDONTO",
             citations=[],
             ontology_constraints=(
                 _build_public_constraints(
@@ -398,27 +475,76 @@ def query_medontoagent(
                 ),
             },
         ) as span:
-            state = medonto_graph.invoke(
-                {
-                    "query": (
-                        request.query
-                    ),
-                }
+            execution = execute_medonto(
+                request.query
             )
 
-            orchestration_status = (
-                state.get(
-                    "orchestration_status",
-                    "ERROR",
+            if (
+                execution.execution_mode
+                == "MEDONTO"
+            ):
+                state = (
+                    execution.medonto_state
                 )
-            )
 
-            retry_count = int(
-                state.get(
-                    "retry_count",
-                    0,
+                if state is None:
+                    raise MedOntoAPIError(
+                        (
+                            "MEDONTO execution did "
+                            "not return graph state."
+                        )
+                    )
+
+                orchestration_status = (
+                    state.get(
+                        "orchestration_status",
+                        "ERROR",
+                    )
                 )
-            )
+
+                retry_count = int(
+                    state.get(
+                        "retry_count",
+                        0,
+                    )
+                )
+
+                response = (
+                    _build_public_response(
+                        query=request.query,
+                        state=state,
+                    )
+                )
+
+            else:
+                baseline_response = (
+                    execution
+                    .baseline_response
+                )
+
+                if baseline_response is None:
+                    raise MedOntoAPIError(
+                        (
+                            "Fallback execution did "
+                            "not return a baseline "
+                            "response."
+                        )
+                    )
+
+                orchestration_status = (
+                    baseline_response.status
+                )
+
+                retry_count = 0
+
+                response = (
+                    _build_fallback_public_response(
+                        query=request.query,
+                        baseline_response=(
+                            baseline_response
+                        ),
+                    )
+                )
 
             span.set_attribute(
                 "medonto.response.status",
@@ -426,14 +552,14 @@ def query_medontoagent(
             )
 
             span.set_attribute(
+                "medonto.execution_mode",
+                execution.execution_mode,
+            )
+
+            span.set_attribute(
                 "medonto.retry_count",
                 retry_count,
             )
-
-        response = _build_public_response(
-            query=request.query,
-            state=state,
-        )
 
         latency_ms = (
             time.perf_counter()

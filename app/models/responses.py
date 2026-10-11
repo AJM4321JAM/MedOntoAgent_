@@ -229,6 +229,7 @@ class MedOntoQueryResponse(BaseModel):
     )
 
     status: Literal[
+        "ANSWERED",
         "VERIFIED",
         "ABSTAINED",
         "ERROR",
