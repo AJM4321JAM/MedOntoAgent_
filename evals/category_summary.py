@@ -1,17 +1,18 @@
+import argparse
 import json
 from collections import defaultdict
 from pathlib import Path
 
 
-DATASET_PATH = Path(
+DEFAULT_DATASET_PATH = Path(
     "evals/golden_dataset.json"
 )
 
-COMPARISON_PATH = Path(
+DEFAULT_COMPARISON_PATH = Path(
     "evals/results/comparison_final_v1_1.json"
 )
 
-OUTPUT_PATH = Path(
+DEFAULT_OUTPUT_PATH = Path(
     "evals/results/category_summary_final_v1_1.json"
 )
 
@@ -151,12 +152,54 @@ def summarize_system(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build deterministic metrics grouped by "
+            "evaluation category."
+        )
+    )
+
+    parser.add_argument(
+        "--dataset",
+        default=str(
+            DEFAULT_DATASET_PATH
+        ),
+    )
+
+    parser.add_argument(
+        "--comparison",
+        default=str(
+            DEFAULT_COMPARISON_PATH
+        ),
+    )
+
+    parser.add_argument(
+        "--output",
+        default=str(
+            DEFAULT_OUTPUT_PATH
+        ),
+    )
+
+    args = parser.parse_args()
+
+    dataset_path = Path(
+        args.dataset
+    )
+
+    comparison_path = Path(
+        args.comparison
+    )
+
+    output_path = Path(
+        args.output
+    )
+
     dataset = load_json(
-        DATASET_PATH
+        dataset_path
     )
 
     comparison = load_json(
-        COMPARISON_PATH
+        comparison_path
     )
 
     dataset_categories = {
@@ -250,7 +293,7 @@ def main() -> None:
         "categories": categories,
     }
 
-    OUTPUT_PATH.write_text(
+    output_path.write_text(
         json.dumps(
             output,
             indent=2,
@@ -350,7 +393,7 @@ def main() -> None:
 
     print(
         "Result:",
-        OUTPUT_PATH,
+        output_path,
     )
 
 
