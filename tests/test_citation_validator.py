@@ -179,7 +179,7 @@ def test_validator_rejects_nonretrieved_chunk_id() -> None:
 
 @patch(
     "app.validation.citation_validator."
-    "_judge_claim"
+    "_judge_claims_batch"
 )
 def test_each_claim_is_validated_independently(
     mock_judge: MagicMock,
@@ -204,7 +204,7 @@ def test_each_claim_is_validated_independently(
         status="DRAFT",
     )
 
-    mock_judge.side_effect = [
+    mock_judge.return_value = [
         CitationJudgeOutput(
             verdict="SUPPORTED",
             reason="Supported.",
@@ -223,7 +223,7 @@ def test_each_claim_is_validated_independently(
 
     assert (
         mock_judge.call_count
-        == 2
+        == 1
     )
 
     assert [
@@ -238,3 +238,163 @@ def test_each_claim_is_validated_independently(
         result.all_claims_supported
         is False
     )
+
+def test_batch_output_requires_complete_unique_indices() -> None:
+    from app.validation.citation_validator import CitationBatchOutput
+    from pydantic import ValidationError
+    from unittest.mock import MagicMock, patch
+    from app.validation.citation_validator import _judge_claims_batch
+
+    draft = MedOntoDraftOutput(
+        answer="Synthetic answer.",
+        claims=[
+            MedOntoClaim(claim_text="First claim", citation_chunk_ids=["CHUNK-1"]),
+            MedOntoClaim(claim_text="Second claim", citation_chunk_ids=["CHUNK-1"]),
+        ],
+        considered_constraints=[], status="DRAFT",
+    )
+    assert CitationBatchOutput.model_validate({"judgments": []}).judgments == []
+
+    for bad_indices in ([0], [0, 0], [0, 2]):
+        response = MagicMock()
+        response.choices = [MagicMock()]
+        response.choices[0].message.content = __import__("json").dumps({
+            "judgments": [
+                {"claim_index": i, "verdict": "SUPPORTED", "reason": "Synthetic"}
+                for i in bad_indices
+            ]
+        })
+        with (
+            patch("app.validation.citation_validator.create_llm_client"),
+            patch("app.validation.citation_validator._call_with_one_retry", return_value=response) as call,
+        ):
+            with pytest.raises(CitationValidationError, match="complete judgments"):
+                _judge_claims_batch(
+                    draft=draft, retrieval=create_retrieval(), settings=create_settings(),
+                )
+            assert call.call_count == 2
+
+
+def test_batch_output_orders_judgments_by_claim_index() -> None:
+    from unittest.mock import MagicMock, patch
+    from app.validation.citation_validator import _judge_claims_batch
+    import json
+
+    draft = MedOntoDraftOutput(
+        answer="Synthetic answer.",
+        claims=[
+            MedOntoClaim(claim_text="First", citation_chunk_ids=["CHUNK-1"]),
+            MedOntoClaim(claim_text="Second", citation_chunk_ids=["CHUNK-1"]),
+        ],
+        considered_constraints=[], status="DRAFT",
+    )
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = json.dumps({"judgments": [
+        {"claim_index": 1, "verdict": "UNSUPPORTED", "reason": "Second fails"},
+        {"claim_index": 0, "verdict": "SUPPORTED", "reason": "First passes"},
+    ]})
+    with (
+        patch("app.validation.citation_validator.create_llm_client"),
+        patch("app.validation.citation_validator._call_with_one_retry", return_value=response) as call,
+    ):
+        judgments = _judge_claims_batch(
+            draft=draft, retrieval=create_retrieval(), settings=create_settings(),
+        )
+    assert call.call_count == 1
+    assert [item.verdict for item in judgments] == ["SUPPORTED", "UNSUPPORTED"]
+
+
+def test_batch_malformed_json_retries_once_then_fails_closed() -> None:
+    from unittest.mock import MagicMock, patch
+    from app.validation.citation_validator import _judge_claims_batch
+
+    draft = MedOntoDraftOutput(
+        answer="Synthetic answer",
+        claims=[
+            MedOntoClaim(claim_text="First", citation_chunk_ids=["CHUNK-1"]),
+            MedOntoClaim(claim_text="Second", citation_chunk_ids=["CHUNK-1"]),
+        ],
+        considered_constraints=[], status="DRAFT",
+    )
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = '{invalid json'
+    with (
+        patch("app.validation.citation_validator.create_llm_client"),
+        patch(
+            "app.validation.citation_validator._call_with_one_retry",
+            return_value=response,
+        ) as call,
+    ):
+        with pytest.raises(CitationValidationError, match="complete judgments"):
+            _judge_claims_batch(
+                draft=draft, retrieval=create_retrieval(), settings=create_settings(),
+            )
+        assert call.call_count == 2
+
+
+@pytest.mark.parametrize("invalid_verdict,invalid_reason", [
+    ("MAYBE", "Synthetic reason"),
+    ("SUPPORTED", ""),
+])
+def test_batch_invalid_judgment_fails_closed(
+    invalid_verdict: str, invalid_reason: str,
+) -> None:
+    import json
+    from unittest.mock import MagicMock, patch
+    from app.validation.citation_validator import _judge_claims_batch
+
+    draft = MedOntoDraftOutput(
+        answer="Synthetic answer",
+        claims=[
+            MedOntoClaim(claim_text="First", citation_chunk_ids=["CHUNK-1"]),
+            MedOntoClaim(claim_text="Second", citation_chunk_ids=["CHUNK-1"]),
+        ],
+        considered_constraints=[], status="DRAFT",
+    )
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = json.dumps({"judgments": [
+        {"claim_index": 0, "verdict": "SUPPORTED", "reason": "Good"},
+        {"claim_index": 1, "verdict": invalid_verdict, "reason": invalid_reason},
+    ]})
+    with (
+        patch("app.validation.citation_validator.create_llm_client"),
+        patch(
+            "app.validation.citation_validator._call_with_one_retry",
+            return_value=response,
+        ) as call,
+    ):
+        with pytest.raises(CitationValidationError, match="complete judgments"):
+            _judge_claims_batch(
+                draft=draft, retrieval=create_retrieval(), settings=create_settings(),
+            )
+        assert call.call_count == 2
+
+
+def test_batch_provider_failure_does_not_trigger_output_retry() -> None:
+    from unittest.mock import patch
+    from app.llm.client import LLMServiceError
+    from app.validation.citation_validator import _judge_claims_batch
+
+    draft = MedOntoDraftOutput(
+        answer="Synthetic answer",
+        claims=[
+            MedOntoClaim(claim_text="First", citation_chunk_ids=["CHUNK-1"]),
+            MedOntoClaim(claim_text="Second", citation_chunk_ids=["CHUNK-1"]),
+        ],
+        considered_constraints=[], status="DRAFT",
+    )
+    with (
+        patch("app.validation.citation_validator.create_llm_client"),
+        patch(
+            "app.validation.citation_validator._call_with_one_retry",
+            side_effect=LLMServiceError("Synthetic provider outage"),
+        ) as call,
+    ):
+        with pytest.raises(LLMServiceError, match="Synthetic provider outage"):
+            _judge_claims_batch(
+                draft=draft, retrieval=create_retrieval(), settings=create_settings(),
+            )
+        assert call.call_count == 1
