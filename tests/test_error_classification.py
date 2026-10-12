@@ -121,3 +121,33 @@ def test_error_categories_do_not_include_exception_details() -> None:
     assert "RATE_LIMIT" in serialized
     assert "GENERATION_ERROR" in serialized
     assert "secret-provider-error-body" not in serialized
+
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "GENERATION_CONSTRAINT_MISMATCH",
+        "GENERATION_CITATION_INVALID",
+        "GENERATION_STRUCTURE_INVALID",
+        "GENERATION_SCHEMA_INVALID",
+        "GENERATION_EMPTY_RESPONSE",
+    ],
+)
+def test_structured_generation_codes_survive_retry_wrapping(
+    code: str,
+) -> None:
+    original = MedOntoGenerationError(
+        "Synthetic failure",
+        code=code,
+    )
+
+    final = MedOntoGenerationError(
+        "Generation failed after retry"
+    )
+    final.__cause__ = original
+
+    assert classify_error(final) == code

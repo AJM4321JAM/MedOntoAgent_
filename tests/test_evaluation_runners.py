@@ -1069,3 +1069,37 @@ def test_runner_cleans_up_context_after_budget_exhaustion() -> None:
 
     assert budget.attempts == 1
     assert get_active_budget() is None
+
+
+
+def test_medonto_runner_preserves_structured_generation_code() -> None:
+    execution = MedOntoExecution(
+        execution_mode="BASELINE_FALLBACK",
+        baseline_response=None,
+        fallback_reason="MedOntoGenerationError",
+        fallback_error="BaselineRAGError",
+        error_category="RATE_LIMIT",
+        medonto_error_category="GENERATION_CONSTRAINT_MISMATCH",
+    )
+
+    with patch(
+        "evals.medonto_runner.execute_medonto",
+        return_value=execution,
+    ):
+        artifact = run_medonto_dataset(
+            one_question_dataset(),
+            settings=settings(),
+        )
+
+    record = artifact.results[0]
+
+    assert record.execution_mode == "BASELINE_FALLBACK"
+    assert record.error_category == "RATE_LIMIT"
+    assert (
+        record.medonto_error_category
+        == "GENERATION_CONSTRAINT_MISMATCH"
+    )
+
+    serialized = record.model_dump_json()
+
+    assert "GENERATION_CONSTRAINT_MISMATCH" in serialized

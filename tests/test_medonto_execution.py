@@ -312,3 +312,36 @@ def test_routed_baseline_preserves_rate_limit_category() -> None:
     assert result.fallback_error == "BaselineRAGError"
     assert result.error_category == "RATE_LIMIT"
     assert result.medonto_error_category is None
+
+
+
+def test_fallback_preserves_structured_generation_code() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from app.agent.execution import execute_medonto
+    from app.llm.medonto_generation import MedOntoGenerationError
+
+    generation_error = MedOntoGenerationError(
+        "Synthetic constraint failure",
+        code="GENERATION_CONSTRAINT_MISMATCH",
+    )
+
+    with (
+        patch(
+            "app.agent.execution.medonto_graph.invoke",
+            side_effect=generation_error,
+        ),
+        patch(
+            "app.agent.execution.run_baseline_rag",
+            return_value=MagicMock(),
+        ),
+    ):
+        result = execute_medonto("Synthetic question?")
+
+    assert result.execution_mode == "BASELINE_FALLBACK"
+    assert result.fallback_reason == "MedOntoGenerationError"
+    assert (
+        result.medonto_error_category
+        == "GENERATION_CONSTRAINT_MISMATCH"
+    )
+    assert result.error_category is None

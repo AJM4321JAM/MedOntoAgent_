@@ -32,7 +32,30 @@ class MedOntoGenerationError(RuntimeError):
     """
     Raised when grounded generation cannot produce a safe,
     structurally valid draft.
+
+    The optional code contains only a fixed diagnostic category,
+    never model output or clinical content.
     """
+
+    VALID_CODES = frozenset({
+        "GENERATION_CONSTRAINT_MISMATCH",
+        "GENERATION_CITATION_INVALID",
+        "GENERATION_STRUCTURE_INVALID",
+        "GENERATION_SCHEMA_INVALID",
+        "GENERATION_EMPTY_RESPONSE",
+    })
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+    ) -> None:
+        if code is not None and code not in self.VALID_CODES:
+            raise ValueError("Unknown generation error code.")
+
+        super().__init__(message)
+        self.code = code
 
 
 def format_medonto_evidence(
@@ -225,7 +248,8 @@ def validate_draft_references(
             (
                 "Generation returned duplicate "
                 "ontology constraint references."
-            )
+            ),
+            code="GENERATION_CONSTRAINT_MISMATCH",
         )
 
     if (
@@ -237,7 +261,8 @@ def validate_draft_references(
                 "Generation did not reproduce exactly "
                 "the ontology constraints supplied "
                 "by the application."
-            )
+            ),
+            code="GENERATION_CONSTRAINT_MISMATCH",
         )
 
     if draft.status == "ABSTAINED":
@@ -246,7 +271,8 @@ def validate_draft_references(
                 (
                     "An ABSTAINED draft must not "
                     "contain factual claims."
-                )
+                ),
+                code="GENERATION_STRUCTURE_INVALID",
             )
 
         return
@@ -256,7 +282,8 @@ def validate_draft_references(
             (
                 "A DRAFT response must contain "
                 "at least one factual claim."
-            )
+            ),
+            code="GENERATION_STRUCTURE_INVALID",
         )
 
     for claim in draft.claims:
@@ -265,7 +292,8 @@ def validate_draft_references(
                 (
                     "Every DRAFT claim must contain "
                     "at least one citation."
-                )
+                ),
+                code="GENERATION_CITATION_INVALID",
             )
 
         for chunk_id in (
@@ -280,7 +308,8 @@ def validate_draft_references(
                         "Generation cited a chunk "
                         "that was not retrieved: "
                         f"{chunk_id}"
-                    )
+                    ),
+                    code="GENERATION_CITATION_INVALID",
                 )
 
 
@@ -482,7 +511,8 @@ def generate_medonto_draft(
 
             if not completion.choices:
                 raise MedOntoGenerationError(
-                    "Generation returned no choices."
+                    "Generation returned no choices.",
+                    code="GENERATION_EMPTY_RESPONSE",
                 )
 
             content = (
@@ -497,7 +527,8 @@ def generate_medonto_draft(
                     (
                         "Generation returned an "
                         "empty response."
-                    )
+                    ),
+                    code="GENERATION_EMPTY_RESPONSE",
                 )
 
             raw_data = (
@@ -519,7 +550,8 @@ def generate_medonto_draft(
                     (
                         "Generation JSON did not match "
                         "MedOntoDraftOutput."
-                    )
+                    ),
+                    code="GENERATION_SCHEMA_INVALID",
                 ) from exc
 
             validate_draft_references(

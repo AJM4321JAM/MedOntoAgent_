@@ -24,6 +24,11 @@ ErrorCategory = Literal[
     "PROVIDER_HTTP_ERROR",
     "LLM_SERVICE_ERROR",
     "GENERATION_ERROR",
+    "GENERATION_CONSTRAINT_MISMATCH",
+    "GENERATION_CITATION_INVALID",
+    "GENERATION_STRUCTURE_INVALID",
+    "GENERATION_SCHEMA_INVALID",
+    "GENERATION_EMPTY_RESPONSE",
     "CITATION_VALIDATION",
     "ONTOLOGY_VALIDATION",
     "RETRIEVAL_ERROR",
@@ -62,6 +67,11 @@ def classify_error(exc: BaseException) -> ErrorCategory:
 
     if any(isinstance(item, LLMServiceError) for item in chain):
         return "LLM_SERVICE_ERROR"
+
+    for item in chain:
+        if isinstance(item, MedOntoGenerationError):
+            if item.code is not None:
+                return item.code
 
     if any(
         isinstance(item, (BaselineRAGError, MedOntoGenerationError))
