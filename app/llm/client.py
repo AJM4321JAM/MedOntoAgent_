@@ -12,7 +12,10 @@ from openai import (
 )
 
 from app.config.settings import Settings, get_settings
-from app.llm.request_budget import get_active_budget
+from app.llm.request_budget import (
+    EvaluationBudgetExhausted,
+    get_active_budget,
+)
 from app.llm.prompts import (
     LLM_TEST_SYSTEM_PROMPT,
     LLM_TEST_USER_PROMPT,
@@ -160,6 +163,15 @@ def _call_with_one_retry(
                     )
                 ) from exc
 
+            budget = get_active_budget()
+            if (
+                budget is not None
+                and budget.attempts >= budget.max_attempts
+            ):
+                raise EvaluationBudgetExhausted(
+                    'Evaluation budget blocked a provider retry.'
+                ) from exc
+
             time.sleep(2)
 
         except APITimeoutError as exc:
@@ -171,6 +183,15 @@ def _call_with_one_retry(
                     )
                 ) from exc
 
+            budget = get_active_budget()
+            if (
+                budget is not None
+                and budget.attempts >= budget.max_attempts
+            ):
+                raise EvaluationBudgetExhausted(
+                    'Evaluation budget blocked a provider retry.'
+                ) from exc
+
             time.sleep(1)
 
         except APIConnectionError as exc:
@@ -180,6 +201,15 @@ def _call_with_one_retry(
                         f"{operation_name} could not connect "
                         "to Gemini after one retry."
                     )
+                ) from exc
+
+            budget = get_active_budget()
+            if (
+                budget is not None
+                and budget.attempts >= budget.max_attempts
+            ):
+                raise EvaluationBudgetExhausted(
+                    'Evaluation budget blocked a provider retry.'
                 ) from exc
 
             time.sleep(1)

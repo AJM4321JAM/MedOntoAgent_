@@ -225,23 +225,70 @@ def test_exhausted_budget_blocks_provider_operation() -> None:
 def test_evaluation_cli_rejects_invalid_budget_arguments(
     module: str,
     arguments: list[str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import subprocess
+    import importlib
     import sys
+    from unittest.mock import patch
 
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            module,
-            *arguments,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
+    runner = importlib.import_module(module)
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [module, *arguments],
     )
 
-    assert completed.returncode != 0
-    assert "error:" in completed.stderr.lower()
-    assert "evaluation complete" not in completed.stdout.lower()
+    with patch.object(
+        runner,
+        "load_evaluation_dataset",
+        side_effect=AssertionError(
+            "Invalid arguments reached dataset loading."
+        ),
+    ) as mock_load:
+        with pytest.raises(SystemExit) as info:
+            runner.main()
+
+    assert info.value.code == 2
+    mock_load.assert_not_called()
+
+def test_blocked_rate_limit_retry_preserves_provider_cause() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from openai import RateLimitError
+
+    from app.llm.client import _call_with_one_retry
+    from app.llm.error_classification import classify_error
+    from app.llm.request_budget import activate_request_budget
+
+    response = MagicMock()
+    response.status_code = 429
+    response.headers = {}
+
+    provider_error = RateLimitError(
+        "Synthetic HTTP 429",
+        response=response,
+        body=None,
+    )
+
+    calls = []
+
+    def operation():
+        calls.append("attempt")
+        raise provider_error
+
+    budget = RequestBudget(max_attempts=1)
+
+    with patch("app.llm.client.time.sleep") as mock_sleep:
+        with activate_request_budget(budget):
+            with pytest.raises(EvaluationBudgetExhausted) as info:
+                _call_with_one_retry(
+                    operation,
+                    operation_name="synthetic provider request",
+                )
+
+    assert calls == ["attempt"]
+    assert budget.attempts == 1
+    assert isinstance(info.value.__cause__, RateLimitError)
+    assert classify_error(info.value) == "RATE_LIMIT"
+    mock_sleep.assert_not_called()
