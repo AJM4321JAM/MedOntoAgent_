@@ -63,6 +63,11 @@ class Settings(BaseSettings):
         le=5,
     )
 
+    # One cap per public question, including fallback and HTTP retries.
+    max_provider_requests_per_query: int = Field(
+        default=8, ge=1, le=64,
+    )
+
     log_level: Literal[
         "DEBUG",
         "INFO",

@@ -292,3 +292,27 @@ def test_blocked_rate_limit_retry_preserves_provider_cause() -> None:
     assert isinstance(info.value.__cause__, RateLimitError)
     assert classify_error(info.value) == "RATE_LIMIT"
     mock_sleep.assert_not_called()
+
+
+def test_request_budget_isolated_across_threads() -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from app.llm.request_budget import activate_request_budget, get_active_budget
+
+    gate = Barrier(2)
+
+    def worker():
+        budget = RequestBudget(max_attempts=1)
+        with activate_request_budget(budget):
+            gate.wait(timeout=5)
+            assert get_active_budget() is budget
+            budget.before_request()
+            return budget
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(worker) for _ in range(2)]
+        budgets = [future.result(timeout=10) for future in futures]
+
+    assert budgets[0] is not budgets[1]
+    assert [budget.attempts for budget in budgets] == [1, 1]
+    assert get_active_budget() is None

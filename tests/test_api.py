@@ -621,3 +621,78 @@ def test_nonontology_query_returns_baseline_routed(
         body["ontology_constraints"]
         == []
     )
+
+
+# Provider-budget integration tests require no external LLM calls.
+
+def test_query_budget_exhaustion_returns_safe_503() -> None:
+    from app.llm.request_budget import get_active_budget
+    from app.config.settings import get_settings
+
+    def invoke(_query):
+        budget = get_active_budget()
+        assert budget is not None
+        budget.before_request()
+        budget.before_request()
+        raise AssertionError("Cap did not block second provider attempt")
+
+    with patch("app.api.routes_query.execute_medonto", side_effect=invoke), \
+         patch("app.api.routes_query.get_settings") as mock_settings:
+        mock_settings.return_value = SimpleNamespace(max_provider_requests_per_query=1)
+        response = client.post("/query", json={"query": "Synthetic safety question?"})
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "MedOntoAgent temporarily cannot complete the request."
+    }
+    assert get_active_budget() is None
+
+
+def test_separate_query_requests_receive_fresh_budgets() -> None:
+    from app.llm.request_budget import get_active_budget
+
+    seen = []
+
+    def invoke(_query):
+        budget = get_active_budget()
+        assert budget is not None
+        seen.append(budget)
+        budget.before_request()
+        return MedOntoExecution(
+            execution_mode="MEDONTO",
+            medonto_state=create_verified_state(),
+        )
+
+    with patch("app.api.routes_query.execute_medonto", side_effect=invoke), \
+         patch("app.api.routes_query.get_settings") as mock_settings:
+        mock_settings.return_value = SimpleNamespace(max_provider_requests_per_query=1)
+        first = client.post("/query", json={"query": "Synthetic safety question?"})
+        second = client.post("/query", json={"query": "Synthetic safety question?"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(seen) == 2 and seen[0] is not seen[1]
+    assert [budget.attempts for budget in seen] == [1, 1]
+
+
+def test_baseline_endpoint_budget_exhaustion_returns_safe_503() -> None:
+    from app.llm.request_budget import get_active_budget
+
+    def run(_query):
+        budget = get_active_budget()
+        assert budget is not None
+        budget.before_request()
+        budget.before_request()
+        raise AssertionError("Baseline cap did not block second request")
+
+    with patch("app.api.routes_baseline.run_baseline_rag", side_effect=run), \
+         patch("app.api.routes_baseline.get_settings") as mock_settings:
+        mock_settings.return_value = SimpleNamespace(max_provider_requests_per_query=1)
+        response = client.post(
+            "/query-baseline", json={"query": "Synthetic safety question?"}
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "MedOntoAgent temporarily cannot complete the request."
+    }

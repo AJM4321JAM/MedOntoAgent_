@@ -9,6 +9,13 @@ from fastapi import (
     status,
 )
 
+from app.config.settings import get_settings
+from app.llm.request_budget import (
+    EvaluationBudgetExhausted,
+    RequestBudget,
+    activate_request_budget,
+)
+
 from app.agent.execution import (
     execute_medonto,
 )
@@ -481,9 +488,12 @@ def query_medontoagent(
                 ),
             },
         ) as span:
-            execution = execute_medonto(
-                request.query
-            )
+            with activate_request_budget(
+                RequestBudget(
+                    max_attempts=get_settings().max_provider_requests_per_query
+                )
+            ):
+                execution = execute_medonto(request.query)
 
             if (
                 execution.execution_mode
@@ -582,6 +592,15 @@ def query_medontoagent(
         )
 
         return response
+
+    except EvaluationBudgetExhausted as exc:
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        record_request(status="ERROR", latency_ms=latency_ms, retry_count=0)
+        logger.warning("MedOntoAgent provider request budget exhausted")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MedOntoAgent temporarily cannot complete the request.",
+        ) from exc
 
     except Exception as exc:
         latency_ms = (

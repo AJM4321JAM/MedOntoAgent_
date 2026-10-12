@@ -4,6 +4,13 @@ from fastapi import (
     status,
 )
 
+from app.config.settings import get_settings
+from app.llm.request_budget import (
+    EvaluationBudgetExhausted,
+    RequestBudget,
+    activate_request_budget,
+)
+
 from app.llm.baseline import (
     BaselineRAGError,
     run_baseline_rag,
@@ -40,9 +47,18 @@ def query_baseline(
     Execute the conventional vector-RAG baseline.
     """
     try:
-        return run_baseline_rag(
-            request.query
-        )
+        with activate_request_budget(
+            RequestBudget(
+                max_attempts=get_settings().max_provider_requests_per_query
+            )
+        ):
+            return run_baseline_rag(request.query)
+
+    except EvaluationBudgetExhausted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MedOntoAgent temporarily cannot complete the request.",
+        ) from exc
 
     except LLMConfigurationError as exc:
         raise HTTPException(
