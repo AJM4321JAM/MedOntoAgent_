@@ -562,3 +562,136 @@ def test_provider_failure_does_not_retry_medonto_generation() -> None:
             )
 
     assert mock_retry.call_count == 1
+
+
+# Offline generation contract tests: real parsing and reference validation,
+# but simulated provider responses. No network calls are permitted.
+def _offline_completion(content):
+    completion = MagicMock()
+    completion.choices = [MagicMock()]
+    completion.choices[0].message.content = content
+    return completion
+
+
+def _offline_draft(*, status="DRAFT", include_constraints=True):
+    refs = []
+    if include_constraints:
+        refs = [MedOntoConstraintReference(
+            constraint_type="CONTRAINDICATION",
+            subject_name="ExampleAntihypertensiveClass",
+            predicate_name="contraindicatedIn",
+            object_name="Pregnancy",
+        )]
+    claims = []
+    if status == "DRAFT":
+        claims = [MedOntoClaim(
+            claim_text="Example Antihypertensive Class is contraindicated in Pregnancy.",
+            citation_chunk_ids=["DOC-test-CHUNK-0000"],
+        )]
+    return MedOntoDraftOutput(
+        answer="Synthetic evidence-grounded output.",
+        claims=claims,
+        considered_constraints=refs,
+        status=status,
+    )
+
+
+@patch("app.llm.medonto_generation.create_llm_client")
+def test_offline_generation_accepts_mocked_valid_draft(mock_client):
+    mock_client.return_value.chat.completions.create.return_value = (
+        _offline_completion(_offline_draft().model_dump_json())
+    )
+    result = generate_medonto_draft(
+        query="Synthetic test question?",
+        retrieval=create_retrieval(),
+        constraint_set=create_constraint_set(),
+        settings=create_settings(),
+    )
+    assert result.status == "DRAFT"
+    assert len(result.considered_constraints) == 1
+    assert mock_client.return_value.chat.completions.create.call_count == 1
+
+
+@patch("app.llm.medonto_generation.create_llm_client")
+def test_offline_generation_accepts_abstention_with_constraints(mock_client):
+    mock_client.return_value.chat.completions.create.return_value = (
+        _offline_completion(_offline_draft(status="ABSTAINED").model_dump_json())
+    )
+    result = generate_medonto_draft(
+        query="Synthetic test question?",
+        retrieval=create_retrieval(),
+        constraint_set=create_constraint_set(),
+        settings=create_settings(),
+    )
+    assert result.status == "ABSTAINED"
+    assert result.claims == []
+    assert len(result.considered_constraints) == 1
+
+
+@patch("app.llm.medonto_generation.create_llm_client")
+def test_offline_generation_rejects_abstention_omitting_constraints(mock_client):
+    from app.llm.error_classification import classify_error
+    mock_client.return_value.chat.completions.create.return_value = (
+        _offline_completion(
+            _offline_draft(status="ABSTAINED", include_constraints=False).model_dump_json()
+        )
+    )
+    with pytest.raises(MedOntoGenerationError) as caught:
+        generate_medonto_draft(
+            query="Synthetic test question?",
+            retrieval=create_retrieval(),
+            constraint_set=create_constraint_set(),
+            settings=create_settings(),
+        )
+    assert classify_error(caught.value) == "GENERATION_CONSTRAINT_MISMATCH"
+    assert mock_client.return_value.chat.completions.create.call_count == 2
+
+
+@patch("app.llm.medonto_generation.create_llm_client")
+def test_offline_generation_rejects_schema_invalid_response(mock_client):
+    from app.llm.error_classification import classify_error
+    mock_client.return_value.chat.completions.create.return_value = (
+        _offline_completion('{"answer":"x","status":"INVALID"}')
+    )
+    with pytest.raises(MedOntoGenerationError) as caught:
+        generate_medonto_draft(
+            query="Synthetic test question?",
+            retrieval=create_retrieval(),
+            constraint_set=create_constraint_set(),
+            settings=create_settings(),
+        )
+    assert classify_error(caught.value) == "GENERATION_SCHEMA_INVALID"
+    assert mock_client.return_value.chat.completions.create.call_count == 2
+
+
+@patch("app.llm.medonto_generation.create_llm_client")
+def test_offline_generation_rejects_empty_response(mock_client):
+    from app.llm.error_classification import classify_error
+    mock_client.return_value.chat.completions.create.return_value = (
+        _offline_completion("")
+    )
+    with pytest.raises(MedOntoGenerationError) as caught:
+        generate_medonto_draft(
+            query="Synthetic test question?",
+            retrieval=create_retrieval(),
+            constraint_set=create_constraint_set(),
+            settings=create_settings(),
+        )
+    assert classify_error(caught.value) == "GENERATION_EMPTY_RESPONSE"
+    assert mock_client.return_value.chat.completions.create.call_count == 2
+
+
+@patch("app.llm.medonto_generation.create_llm_client")
+def test_offline_generation_invalid_json_does_not_reissue_request(mock_client):
+    from app.llm.client import LLMServiceError
+    mock_client.return_value.chat.completions.create.return_value = (
+        _offline_completion("not-json")
+    )
+    with pytest.raises(LLMServiceError):
+        generate_medonto_draft(
+            query="Synthetic test question?",
+            retrieval=create_retrieval(),
+            constraint_set=create_constraint_set(),
+            settings=create_settings(),
+        )
+    assert mock_client.return_value.chat.completions.create.call_count == 1
