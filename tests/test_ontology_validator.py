@@ -306,3 +306,164 @@ def test_validator_receives_recommendation_qualifiers() -> None:
             ]
             == "If the primary option is not suitable"
         )
+
+
+# Multi-constraint batch tests use the existing synthetic ontology fixtures.
+def _two_constraints():
+    result = create_constraints()
+    first = result.constraints[0]
+    second = first.model_copy(update={
+        "subject_name": "TreatmentZ",
+        "recommendation_priority": 2,
+        "recommendation_condition": "Only if primary option is unsuitable",
+    })
+    return result.model_copy(update={
+        "constraints": [first, second], "constraint_count": 2,
+    })
+
+
+def _batch_response(judgments):
+    from unittest.mock import MagicMock
+    import json
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = json.dumps({"judgments": judgments})
+    return response
+
+
+def _valid_batch_items():
+    return [
+        {"constraint_index": 0, "verdict": "COMPLIES", "reason": "Consistent"},
+        {"constraint_index": 1, "verdict": "NOT_APPLICABLE", "reason": "Not addressed"},
+    ]
+
+
+def test_batched_ontology_rejects_incomplete_indices():
+    import pytest
+    from app.validation.ontology_validator import OntologyValidationError
+    for bad_indices in ([0], [0, 0], [0, 2]):
+        data = [
+            {"constraint_index": i, "verdict": "COMPLIES", "reason": "Synthetic"}
+            for i in bad_indices
+        ]
+        with (
+            patch("app.validation.ontology_validator.create_llm_client"),
+            patch("app.validation.ontology_validator._call_with_one_retry",
+                  return_value=_batch_response(data)) as call,
+        ):
+            with pytest.raises(OntologyValidationError, match="complete judgments"):
+                validate_ontology_compliance(
+                    draft=create_draft(), constraint_set=_two_constraints(),
+                    settings=create_settings(),
+                )
+            assert call.call_count == 2
+
+
+def test_batched_ontology_reorders_and_preserves_qualifiers():
+    from app.validation.ontology_validator import _judge_constraints_batch
+    constraints = _two_constraints()
+    reverse = list(reversed(_valid_batch_items()))
+    with (
+        patch("app.validation.ontology_validator.create_llm_client"),
+        patch("app.validation.ontology_validator._call_with_one_retry",
+              return_value=_batch_response(reverse)) as call,
+    ):
+        result = validate_ontology_compliance(
+            draft=create_draft(), constraint_set=constraints,
+            settings=create_settings(),
+        )
+        assert call.call_count == 1
+        operation = call.call_args.args[0]
+        # The batch judge receives original constraint objects, including qualifiers.
+        assert constraints.constraints[1].recommendation_priority == 2
+        assert constraints.constraints[1].recommendation_condition == "Only if primary option is unsuitable"
+    assert [item.verdict for item in result.items] == ["COMPLIES", "NOT_APPLICABLE"]
+    assert result.has_conflict is False
+
+
+def test_batched_ontology_conflict_is_not_lost():
+    data = _valid_batch_items()
+    data[1]["verdict"] = "CONFLICTS"
+    with (
+        patch("app.validation.ontology_validator.create_llm_client"),
+        patch("app.validation.ontology_validator._call_with_one_retry",
+              return_value=_batch_response(data)),
+    ):
+        result = validate_ontology_compliance(
+            draft=create_draft(), constraint_set=_two_constraints(),
+            settings=create_settings(),
+        )
+    assert result.has_conflict is True
+    assert result.items[1].verdict == "CONFLICTS"
+
+
+import pytest
+
+
+@pytest.mark.parametrize("field,value", [("verdict", "UNKNOWN"), ("reason", "")])
+def test_batched_ontology_invalid_verdict_or_reason(field, value):
+    from app.validation.ontology_validator import OntologyValidationError
+    data = _valid_batch_items()
+    data[0][field] = value
+    with (
+        patch("app.validation.ontology_validator.create_llm_client"),
+        patch("app.validation.ontology_validator._call_with_one_retry",
+              return_value=_batch_response(data)) as call,
+    ):
+        with pytest.raises(OntologyValidationError, match="complete judgments"):
+            validate_ontology_compliance(
+                draft=create_draft(), constraint_set=_two_constraints(),
+                settings=create_settings(),
+            )
+        assert call.call_count == 2
+
+
+def test_batched_ontology_malformed_json_retries_once():
+    from app.validation.ontology_validator import OntologyValidationError
+    from unittest.mock import MagicMock
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = "not valid JSON"
+    with (
+        patch("app.validation.ontology_validator.create_llm_client"),
+        patch("app.validation.ontology_validator._call_with_one_retry",
+              return_value=response) as call,
+    ):
+        with pytest.raises(OntologyValidationError, match="complete judgments"):
+            validate_ontology_compliance(
+                draft=create_draft(), constraint_set=_two_constraints(),
+                settings=create_settings(),
+            )
+        assert call.call_count == 2
+
+
+def test_batched_ontology_provider_failure_does_not_output_retry():
+    from app.llm.client import LLMServiceError
+    with (
+        patch("app.validation.ontology_validator.create_llm_client"),
+        patch("app.validation.ontology_validator._call_with_one_retry",
+              side_effect=LLMServiceError("Synthetic outage")) as call,
+    ):
+        with pytest.raises(LLMServiceError, match="Synthetic outage"):
+            validate_ontology_compliance(
+                draft=create_draft(), constraint_set=_two_constraints(),
+                settings=create_settings(),
+            )
+        assert call.call_count == 1
+
+
+def test_batched_ontology_excludes_noneligible_constraints():
+    constraints = _two_constraints()
+    constraints.constraints[1] = constraints.constraints[1].model_copy(update={
+        "control_eligible": False,
+        "assertion_status": "SYNTHETIC_TEST_ONLY",
+    })
+    with patch("app.validation.ontology_validator._judge_constraint") as single:
+        from app.validation.ontology_validator import OntologyJudgeOutput
+        single.return_value = OntologyJudgeOutput(verdict="COMPLIES", reason="Synthetic")
+        result = validate_ontology_compliance(
+            draft=create_draft(), constraint_set=constraints,
+            settings=create_settings(),
+        )
+        single.assert_called_once()
+    assert len(result.items) == 1
