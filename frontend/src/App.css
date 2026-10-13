@@ -572,3 +572,150 @@ textarea::placeholder {
   .question-card { padding: 18px; }
   .pipeline-steps { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ==========================================================
+   MedOntoAgent: Clinical Results and Decision Audit
+   ========================================================== */
+
+.result-content {
+  padding: 22px;
+  max-height: 520px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.result-content h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #29445b;
+  margin: 0 0 14px;
+}
+
+.result-content > p {
+  line-height: 1.8;
+}
+
+.result-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.result-metadata span {
+  display: inline-flex;
+  background: #eaf4f6;
+  color: #246b7b;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.clinical-answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #344b62;
+  font-size: 13px;
+}
+
+.result-disclaimer {
+  border-top: 1px solid #edf0f4;
+  padding-top: 12px;
+  margin-top: 22px;
+  font-size: 11px;
+  color: #8292a3;
+}
+
+.audit-event {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.audit-event:last-of-type {
+  border-bottom: 0;
+}
+
+.audit-event strong {
+  color: #31465c;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.audit-event span {
+  color: #8190a2;
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.citation-item {
+  border: 1px solid #e3eaf1;
+  border-radius: 9px;
+  padding: 13px;
+  margin-bottom: 10px;
+  background: #fcfdff;
+}
+
+.citation-item strong {
+  display: block;
+  color: #29445b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.citation-item p {
+  margin: 5px 0;
+  color: #718297;
+  font-size: 12px;
+}
+
+.citation-item span,
+.citation-item a {
+  display: block;
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.citation-item a {
+  color: #147e96;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.constraints-heading {
+  margin-top: 25px !important;
+}
+
+.constraint-item {
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #e4eaf1;
+  border-radius: 8px;
+  background: #f4f7fa;
+  color: #465a6d;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .result-content {
+    padding: 16px;
+    max-height: none;
+  }
+
+  .audit-event {
+    flex-wrap: wrap;
+  }
+}

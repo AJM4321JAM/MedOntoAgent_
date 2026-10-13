@@ -16,6 +16,7 @@ import {
   Stethoscope,
   Workflow,
 } from 'lucide-react'
+import { runClinicalQuery, type DemoQueryResult } from './api'
 import './App.css'
 
 type Page = 'workbench' | 'library' | 'operations'
@@ -31,6 +32,30 @@ function App() {
   const [page, setPage] = useState<Page>('workbench')
   const [question, setQuestion] = useState('')
   const [detailTab, setDetailTab] = useState<DetailTab>('evidence')
+  const [result, setResult] = useState<DemoQueryResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleRun() {
+    if (loading || question.trim().length < 3) return
+
+    setLoading(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const data = await runClinicalQuery(question.trim())
+      setResult(data)
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'The request could not be completed.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const navigation = [
     { id: 'workbench' as const, name: 'Clinical Workbench', icon: Stethoscope },
@@ -92,7 +117,7 @@ function App() {
           </div>
           <span className="connection-status">
             <span className="status-dot" />
-            API not connected
+            Local API connected
           </span>
         </header>
 
@@ -125,7 +150,11 @@ function App() {
                 <textarea
                   id="clinical-question"
                   value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
+                  onChange={(event) => {
+                    setQuestion(event.target.value)
+                    setResult(null)
+                    setError(null)
+                  }}
                   placeholder="Enter a question about the available clinical guidelines..."
                   rows={4}
                   maxLength={4000}
@@ -133,14 +162,19 @@ function App() {
 
                 <div className="question-actions">
                   <span>{question.length} / 4000 characters</span>
-                  <button className="run-button" type="button" disabled>
+                  <button
+                    className="run-button"
+                    type="button"
+                    disabled={loading || question.trim().length < 3}
+                    onClick={handleRun}
+                  >
                     <LockKeyhole size={16} />
-                    Run Agent
+                    {loading ? 'Running agent...' : 'Run Agent'}
                     <ArrowRight size={16} />
                   </button>
                 </div>
                 <div className="connection-note">
-                  Live execution will be enabled after the secure backend connection is configured.
+                  Local demonstration mode. Each run executes the real backend and may use configured AI services.
                 </div>
 
                 <div className="examples">
@@ -150,7 +184,11 @@ function App() {
                       <button
                         type="button"
                         key={example}
-                        onClick={() => setQuestion(example)}
+                        onClick={() => {
+                          setQuestion(example)
+                          setResult(null)
+                          setError(null)
+                        }}
                       >
                         {example}
                         <ArrowRight size={15} />
@@ -167,16 +205,38 @@ function App() {
                       <FileText size={19} />
                       <h2>Clinical response</h2>
                     </div>
-                    <span className="neutral-tag">Not run</span>
+                    <span className="neutral-tag">
+                      {loading ? 'Running' : result?.response.status ?? 'Not run'}
+                    </span>
                   </div>
-                  <div className="empty-state response-empty">
-                    <div className="empty-icon"><Stethoscope size={28} /></div>
-                    <h3>Ready for an evidence-grounded response</h3>
-                    <p>
-                      Once connected, answers and their verification status will
-                      appear here directly from MedOntoAgent.
-                    </p>
-                  </div>
+                  {error ? (
+                    <div className="result-content" role="alert">
+                      <h3>Request unsuccessful</h3>
+                      <p>{error}</p>
+                    </div>
+                  ) : result ? (
+                    <div className="result-content">
+                      <div className="result-metadata">
+                        <span>Mode: {result.response.execution_mode}</span>
+                        <span>Status: {result.response.status}</span>
+                      </div>
+                      <p className="clinical-answer">{result.response.answer}</p>
+                      <p className="result-disclaimer">
+                        Verification indicates implemented evidence checks,
+                        not a guarantee of clinical completeness.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="empty-state response-empty">
+                      <div className="empty-icon"><Stethoscope size={28} /></div>
+                      <h3>{loading ? 'Executing clinical workflow' : 'Ready for an evidence-grounded response'}</h3>
+                      <p>
+                        {loading
+                          ? 'Please wait while MedOntoAgent processes the question.'
+                          : 'Submit a question to see the actual backend response.'}
+                      </p>
+                    </div>
+                  )}
                 </section>
 
                 <section className="panel">
@@ -195,23 +255,78 @@ function App() {
                     </button>
                   </div>
 
-                  <div className="empty-state details-empty">
-                    <div className="empty-icon">
-                      {detailTab === 'evidence'
-                        ? <BookOpen size={25} />
-                        : <GitBranch size={25} />}
+                  {result ? (
+                    <div className="result-content">
+                      {detailTab === 'audit' ? (
+                        <>
+                          <h3>Actual LangGraph execution</h3>
+                          {result.execution_trace.map((event) => (
+                            <div className="audit-event" key={event.sequence}>
+                              <strong>{event.sequence}. {event.node}</strong>
+                              <span>{event.elapsed_since_previous_update_ms.toFixed(1)} ms</span>
+                            </div>
+                          ))}
+                          <p className="result-disclaimer">
+                            Timings are measured between streamed node updates,
+                            not isolated node execution durations.
+                            Baseline execution occurs outside this graph timeline.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h3>Evidence citations</h3>
+                          {result.response.citations.length === 0 ? (
+                            <p>No citations were returned for this outcome.</p>
+                          ) : (
+                            result.response.citations.map((citation) => (
+                              <div className="citation-item" key={citation.chunk_id}>
+                                <strong>{citation.title}</strong>
+                                <p>{citation.section_title || 'Section not specified'}</p>
+                                <span>
+                                  {citation.page_number != null
+                                    ? `Page ${citation.page_number}`
+                                    : 'Page not specified'}
+                                </span>
+                                {citation.source_url?.startsWith('https://') && (
+                                  <a href={citation.source_url} target="_blank" rel="noreferrer">
+                                    View source
+                                  </a>
+                                )}
+                              </div>
+                            ))
+                          )}
+                          <h3 className="constraints-heading">Ontology constraints</h3>
+                          {result.response.ontology_constraints.length === 0 ? (
+                            <p>No public ontology constraints returned for this outcome.</p>
+                          ) : (
+                            result.response.ontology_constraints.map((constraint, index) => (
+                              <pre className="constraint-item" key={index}>
+                                {JSON.stringify(constraint, null, 2)}
+                              </pre>
+                            ))
+                          )}
+                          <p className="result-disclaimer">
+                            Retrieved results: {result.response.retrieval.result_count}.
+                            Ontology filter used: {result.response.retrieval.used_ontology_filter ? 'Yes' : 'No'}.
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <h3>
-                      {detailTab === 'evidence'
-                        ? 'Evidence will appear here'
-                        : 'Execution timeline will appear here'}
-                    </h3>
-                    <p>
-                      {detailTab === 'evidence'
-                        ? 'Source citations and retrieved evidence details will come from the clinical API.'
-                        : 'Actual executed LangGraph nodes, retries and timing will come from the protected audit API.'}
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="empty-state details-empty">
+                      <div className="empty-icon">
+                        {detailTab === 'evidence'
+                          ? <BookOpen size={25} />
+                          : <GitBranch size={25} />}
+                      </div>
+                      <h3>
+                        {detailTab === 'evidence'
+                          ? 'Evidence will appear here'
+                          : 'Execution timeline will appear here'}
+                      </h3>
+                      <p>Run a question to display real backend data.</p>
+                    </div>
+                  )}
                 </section>
               </div>
 
