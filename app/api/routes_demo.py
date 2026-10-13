@@ -11,6 +11,7 @@ from app.api import routes_query as query_routes
 from app.models.requests import QueryRequest
 from app.models.responses import MedOntoQueryResponse
 from app.security.auth import require_admin
+from app.config.settings import activate_demo_settings
 
 
 logger = logging.getLogger(__name__)
@@ -52,15 +53,16 @@ def query_demo(request: QueryRequest) -> DemoQueryResponse:
             "medonto.demo.graph",
             attributes={"medonto.query.length": len(request.query)},
         ):
-            with query_routes.activate_request_budget(
-                query_routes.RequestBudget(
-                    max_attempts=(
-                        query_routes.get_settings()
-                        .max_provider_requests_per_query
+            with activate_demo_settings():
+                with query_routes.activate_request_budget(
+                    query_routes.RequestBudget(
+                        max_attempts=(
+                            query_routes.get_settings()
+                            .max_provider_requests_per_query
+                        )
                     )
-                )
-            ):
-                audited = execute_medonto_with_audit(request.query)
+                ):
+                    audited = execute_medonto_with_audit(request.query)
 
         execution = audited.execution
 

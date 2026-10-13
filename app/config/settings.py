@@ -184,3 +184,44 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return one cached configuration instance."""
     return Settings()
+
+
+# Demo-only settings are isolated from normal API and evaluation calls.
+# The existing get_settings implementation remains the default.
+from contextlib import contextmanager as _demo_contextmanager
+from contextvars import ContextVar as _DemoContextVar
+
+_unscoped_get_settings = get_settings
+
+_active_demo_settings = _DemoContextVar(
+    "medonto_active_demo_settings",
+    default=None,
+)
+
+
+def get_settings() -> Settings:
+    """Return demo-scoped settings when explicitly activated."""
+    scoped = _active_demo_settings.get()
+    if scoped is not None:
+        return scoped
+    return _unscoped_get_settings()
+
+
+@_demo_contextmanager
+def activate_demo_settings():
+    """Apply bounded provider settings only within this execution."""
+    base = get_settings()
+
+    scoped = base.model_copy(
+        update={
+            "llm_timeout_seconds": 20.0,
+            "max_provider_requests_per_query": 4,
+        }
+    )
+
+    token = _active_demo_settings.set(scoped)
+
+    try:
+        yield scoped
+    finally:
+        _active_demo_settings.reset(token)
