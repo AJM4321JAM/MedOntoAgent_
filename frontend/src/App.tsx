@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -9,6 +9,8 @@ import {
   GitBranch,
   Layers3,
   LockKeyhole,
+  Moon,
+  Sun,
   Search,
   ShieldCheck,
   Stethoscope,
@@ -17,6 +19,8 @@ import {
 import { runClinicalQuery, type DemoQueryResult } from './api'
 import './App.css'
 import { KnowledgeLibrary, SystemOperations } from './WorkspacePages'
+import { ResearchWelcome, ResearchReview } from './ResearchExperience'
+import './Theme.css'
 
 type Page = 'workbench' | 'library' | 'operations'
 type DetailTab = 'evidence' | 'audit'
@@ -106,6 +110,19 @@ function DecisionTimeline({ result, compact = false }: { result: DemoQueryResult
 }
 
 function App() {
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = window.localStorage.getItem('medonto-theme')
+      if (saved === 'light' || saved === 'dark') return saved
+    } catch { /* Storage may be restricted. */ }
+    return 'dark'
+  })
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', themeMode)
+    document.documentElement.style.colorScheme = themeMode
+    try { window.localStorage.setItem('medonto-theme', themeMode) } catch { /* Private browsing. */ }
+  }, [themeMode])
+
   const [page, setPage] = useState<Page>('workbench')
   const [question, setQuestion] = useState('')
   const [detailTab, setDetailTab] = useState<DetailTab>('evidence')
@@ -132,6 +149,14 @@ function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function selectResearchQuestion(next: string) {
+    setPage('workbench')
+    setQuestion(next)
+    setResult(null)
+    setError(null)
+    document.getElementById('clinical-question')?.focus()
   }
 
   const navigation = [
@@ -192,10 +217,19 @@ function App() {
                   : 'System Operations'}
             </strong>
           </div>
-          <span className="connection-status">
-            <span className="status-dot" />
-            Local API connected
-          </span>
+          <div className="topbar-actions">
+            <button type="button" className="theme-toggle"
+              onClick={() => setThemeMode((current) => current === 'dark' ? 'light' : 'dark')}
+              aria-label={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-pressed={themeMode === 'dark'}>
+              {themeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{themeMode === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+            </button>
+            <span className="connection-status">
+              <span className="status-dot" />
+              Local demo API
+            </span>
+          </div>
         </header>
 
         <div className="content">
@@ -211,6 +245,8 @@ function App() {
                   grounded generation and explicit verification.
                 </p>
               </section>
+
+              <ResearchWelcome onSelect={selectResearchQuestion} hasResult={result !== null} />
 
               <section className="question-card">
                 <div className="section-heading">
@@ -409,6 +445,8 @@ function App() {
                   <DecisionTimeline result={result} />
                 </section>
               )}
+
+              {result && !loading && !error && <ResearchReview result={result} onQuestion={selectResearchQuestion} />}
 
               <section className="pipeline-card">
                 <div className="pipeline-heading">

@@ -59,8 +59,8 @@ test('workbench displays a synthetic backend response', async ({ page }) => {
   await page.getByRole('button', { name: /Run Agent/i }).click()
 
   await expect(page.getByText('SYNTHETIC TEST RESPONSE. Not clinical guidance.')).toBeVisible()
-  await expect(page.getByText('Mode: MEDONTO')).toBeVisible()
-  await expect(page.getByText('Synthetic Test Guideline')).toBeVisible()
+  await expect(page.getByText('Mode: MEDONTO', { exact: true })).toBeVisible()
+  await expect(page.getByText('Synthetic Test Guideline', { exact: true }).first()).toBeVisible()
 
   await page.getByRole('button', { name: /Decision Audit/i }).click()
 
