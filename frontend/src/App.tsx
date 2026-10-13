@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
-  Clock3,
   Database,
   FileText,
   GitBranch,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react'
 import { runClinicalQuery, type DemoQueryResult } from './api'
 import './App.css'
+import { KnowledgeLibrary, SystemOperations } from './WorkspacePages'
 
 type Page = 'workbench' | 'library' | 'operations'
 type DetailTab = 'evidence' | 'audit'
@@ -436,28 +436,7 @@ function App() {
               </section>
             </>
           ) : (
-            <section className="secondary-page">
-              <div className="eyebrow">
-                {page === 'library' ? <BookOpen size={16} /> : <Activity size={16} />}
-                MEDONTOAGENT WORKSPACE
-              </div>
-              <h1>{page === 'library' ? 'Knowledge Library' : 'System Operations'}</h1>
-              <p>
-                {page === 'library'
-                  ? 'A read-only view of the registered guideline documents, provenance and approval status.'
-                  : 'A view of system health and diagnostic information reported by the backend.'}
-              </p>
-              <div className="secondary-placeholder">
-                {page === 'library'
-                  ? <BookOpen size={34} />
-                  : <Clock3 size={34} />}
-                <h2>Awaiting backend integration</h2>
-                <p>
-                  This section will display actual application data.
-                  No sample documents or operational statistics are being fabricated.
-                </p>
-              </div>
-            </section>
+            (page === 'library' ? <KnowledgeLibrary /> : <SystemOperations />)
           )}
 
           <footer className="footer">

@@ -88,3 +88,6 @@ def health_check() -> dict[str, str]:
 # Protected demonstration audit endpoint.
 from app.api.routes_demo import router as demo_router
 app.include_router(demo_router)
+
+from app.api.routes_workspace import router as workspace_router
+app.include_router(workspace_router)

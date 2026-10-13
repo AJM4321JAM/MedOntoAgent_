@@ -1,15 +1,17 @@
-
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+
+const configDirectory = dirname(fileURLToPath(import.meta.url))
+const envPath = resolve(configDirectory, '../.env')
 
 function loadLocalAdminKey(): string {
-  const envPath = resolve(__dirname, '../.env')
   const lines = readFileSync(envPath, 'utf8').split(/\r?\n/)
 
   const entry = lines.find((line) =>
-    /^\s*ADMIN_API_KEY\s*=/.test(line)
+    /^\s*ADMIN_API_KEY\s*=/.test(line),
   )
 
   if (!entry) {
