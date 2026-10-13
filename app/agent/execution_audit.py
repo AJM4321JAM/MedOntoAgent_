@@ -1,5 +1,6 @@
 """Bounded, content-free LangGraph execution audit."""
 
+import logging
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
@@ -10,6 +11,8 @@ ALLOWED_NODES = frozenset({
     "retrieve", "baseline_routed", "generate",
     "validate", "retry", "verified", "abstain",
 })
+
+logger = logging.getLogger(__name__)
 
 MAX_EVENTS = 64
 TERMINAL_STATUSES = frozenset({
@@ -111,6 +114,14 @@ def execute_graph_with_audit(
                 )
             )
             last_update = now
+
+            logger.info(
+                "MedOnto audit stage complete: "
+                "node=%s elapsed_ms=%.2f sequence=%d",
+                node,
+                events[-1].elapsed_since_previous_update_ms,
+                events[-1].sequence,
+            )
 
     if not events or final_state is None:
         raise RuntimeError("Graph produced no complete audit result.")

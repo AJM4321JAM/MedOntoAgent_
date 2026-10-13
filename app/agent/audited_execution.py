@@ -1,5 +1,7 @@
 """Audited MedOnto execution with existing fallback semantics."""
 
+import logging
+from time import perf_counter
 from dataclasses import dataclass
 
 from app.agent.execution import (
@@ -18,6 +20,8 @@ from app.llm.client import LLMServiceError
 from app.llm.error_classification import classify_error
 from app.retrieval.retriever import RetrievalError
 
+
+logger = logging.getLogger(__name__)
 
 BASELINE_ERRORS = (
     BaselineRAGError,
@@ -98,6 +102,12 @@ def _run_baseline(
     fallback_reason: str | None = None,
     medonto_error_category: str | None = None,
 ) -> AuditedExecution:
+    baseline_start = perf_counter()
+    logger.info(
+        "MedOnto baseline started: mode=%s",
+        mode,
+    )
+
     try:
         response = run_baseline_rag(
             query,
@@ -119,6 +129,15 @@ def _run_baseline(
             fallback_reason=fallback_reason,
             medonto_error_category=medonto_error_category,
         )
+
+    logger.info(
+        "MedOnto baseline complete: "
+        "mode=%s outcome=%s elapsed_ms=%.2f",
+        mode,
+        "success" if execution.baseline_response is not None
+        else "dependency_failure",
+        (perf_counter() - baseline_start) * 1000,
+    )
 
     return AuditedExecution(
         execution=execution,
