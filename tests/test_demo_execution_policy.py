@@ -20,7 +20,7 @@ def test_demo_settings_activate_and_restore():
         scoped = get_settings()
 
         assert scoped.llm_timeout_seconds == 20.0
-        assert scoped.max_provider_requests_per_query == 4
+        assert scoped.max_provider_requests_per_query == 8
         assert scoped is not original
 
     restored = get_settings()
@@ -79,7 +79,7 @@ def test_compiled_langgraph_receives_demo_settings():
         })
 
     assert result["timeout"] == 20.0
-    assert result["budget"] == 4
+    assert result["budget"] == 8
 
 
 def test_demo_query_enforces_scoped_budget(monkeypatch):
@@ -125,7 +125,7 @@ def test_demo_query_enforces_scoped_budget(monkeypatch):
         )
 
     assert observed["timeout"] == 20.0
-    assert observed["attempts"] == 4
+    assert observed["attempts"] == 8
 
     # The ContextVar and budget must both be reset.
     assert get_active_budget() is None

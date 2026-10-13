@@ -215,7 +215,7 @@ def activate_demo_settings():
     scoped = base.model_copy(
         update={
             "llm_timeout_seconds": 20.0,
-            "max_provider_requests_per_query": 4,
+            "max_provider_requests_per_query": 8,
         }
     )
 
