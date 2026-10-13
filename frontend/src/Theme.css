@@ -1,0 +1,41 @@
+/* MedOntoAgent two-mode presentation layer. No clinical data or API behavior changes. */
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.theme-toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:9px;border:1px solid #dbe5ee;background:#f6fafb;color:#1c6275;font:inherit;font-size:12px;font-weight:650}
+.theme-toggle:focus-visible{outline:3px solid #35aab5;outline-offset:2px}
+[data-theme="dark"]{background:#0b1320;color:#dbe7f3}
+[data-theme="dark"] body,[data-theme="dark"] #root,[data-theme="dark"] .app-shell,[data-theme="dark"] .main-area{background:#0b1320;color:#dbe7f3}
+[data-theme="dark"] .sidebar{background:#0a1526;border-right:1px solid #253850}
+[data-theme="dark"] .nav-item.active{background:#19354b}
+[data-theme="dark"] .topbar{background:#111f30;border-bottom-color:#293b50}
+[data-theme="dark"] .breadcrumb,[data-theme="dark"] .connection-status,[data-theme="dark"] .question-actions>span{color:#a9b9ca}
+[data-theme="dark"] .breadcrumb strong{color:#e7f2fa}
+[data-theme="dark"] .connection-status{border-color:#38506a}
+[data-theme="dark"] .theme-toggle{background:#20364b;border-color:#456078;color:#dcf5f6}
+[data-theme="dark"] .page-heading h1,[data-theme="dark"] .secondary-page h1,[data-theme="dark"] .workspace-page h1{color:#f2f7ff}
+[data-theme="dark"] .page-heading>p,[data-theme="dark"] .secondary-page>p,[data-theme="dark"] .workspace-lead{color:#b2c2d2}
+[data-theme="dark"] .question-card,[data-theme="dark"] .panel,[data-theme="dark"] .pipeline-card,[data-theme="dark"] .secondary-placeholder,[data-theme="dark"] .workspace-document,[data-theme="dark"] .workspace-component,[data-theme="dark"] .workspace-settings,[data-theme="dark"] .workspace-stats>div,[data-theme="dark"] .workspace-message,[data-theme="dark"] .workspace-error{background:#172638;border-color:#344a61;box-shadow:none;color:#dce8f4}
+[data-theme="dark"] .section-heading h2,[data-theme="dark"] .panel h2,[data-theme="dark"] .pipeline-heading h2,[data-theme="dark"] .result-content h3,[data-theme="dark"] .workspace-section-title,[data-theme="dark"] .workspace-document-title h2,[data-theme="dark"] .workspace-component strong,[data-theme="dark"] .workspace-settings>strong{color:#e7f1fa}
+[data-theme="dark"] .section-heading p,[data-theme="dark"] .pipeline-heading p,[data-theme="dark"] .field-label,[data-theme="dark"] .examples-label,[data-theme="dark"] .workspace-document-meta,[data-theme="dark"] .workspace-component p,[data-theme="dark"] .workspace-caveat{color:#acbece}
+[data-theme="dark"] textarea,[data-theme="dark"] .workspace-filters input,[data-theme="dark"] .workspace-filters label,[data-theme="dark"] .workspace-filters select{background:#101e2f;border-color:#3d5167;color:#edf5fd}
+[data-theme="dark"] textarea::placeholder{color:#93a8ba}
+[data-theme="dark"] .example-list button,[data-theme="dark"] .workspace-toolbar button{background:#20354a;border-color:#3b536c;color:#c7edf2}
+[data-theme="dark"] .example-list button:hover,[data-theme="dark"] .workspace-toolbar button:hover{background:#28465e}
+[data-theme="dark"] .panel-header,[data-theme="dark"] .tab-header,[data-theme="dark"] .examples,[data-theme="dark"] .result-disclaimer,[data-theme="dark"] .footer,[data-theme="dark"] .workspace-document details{border-color:#364a60}
+[data-theme="dark"] .tab-header button{color:#a5b8c9}
+[data-theme="dark"] .tab-header button.selected{color:#77d6e4;border-bottom-color:#77d6e4}
+[data-theme="dark"] .clinical-answer,[data-theme="dark"] .result-content,[data-theme="dark"] .audit-timeline-top strong,[data-theme="dark"] .audit-event strong,[data-theme="dark"] .workspace-toolbar{color:#dfeaf5}
+[data-theme="dark"] .result-disclaimer,[data-theme="dark"] .audit-interpretation,[data-theme="dark"] .workspace-document dt,[data-theme="dark"] .workspace-settings>span,[data-theme="dark"] .workspace-stats small,[data-theme="dark"] .workspace-stats strong{color:#b7c8d7}
+[data-theme="dark"] .result-metadata span,[data-theme="dark"] .neutral-tag,[data-theme="dark"] .workspace-pill{background:#21485a;color:#b4eefa}
+[data-theme="dark"] .workspace-pill.muted{background:#2c4055;color:#d5e1ef}
+[data-theme="dark"] .citation-item,[data-theme="dark"] .constraint-item,[data-theme="dark"] .pipeline-step,[data-theme="dark"] .audit-summary>div{background:#1d3145;border-color:#3a536b;color:#dce7f2}
+[data-theme="dark"] .citation-item strong,[data-theme="dark"] .pipeline-step strong{color:#e6f0fa}
+[data-theme="dark"] .citation-item p,[data-theme="dark"] .citation-item span,[data-theme="dark"] .pipeline-step>span{color:#b4c5d3}
+[data-theme="dark"] .citation-item a,[data-theme="dark"] .workspace-document a{color:#82dfed}
+[data-theme="dark"] .empty-state h3{color:#ebf5fb}
+[data-theme="dark"] .empty-state p,[data-theme="dark"] .workspace-document dd{color:#c1d1de}
+[data-theme="dark"] .audit-duration-track{background:#2b4357}
+[data-theme="dark"] .audit-timeline-item{border-color:#35495e}
+[data-theme="dark"] .workspace-stats strong{color:#e5f3fc}
+[data-theme="dark"] .workspace-error{border-color:#8e585d;color:#ffbdc3}
+[data-theme="dark"] .run-button{background:#177e9b;color:#fff}
+@media(max-width:700px){.topbar-actions{gap:7px}.theme-toggle{padding:8px}.theme-toggle span{display:none}.connection-status{padding:7px}}

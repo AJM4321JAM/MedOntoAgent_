@@ -1,0 +1,15 @@
+import { test, expect } from '@playwright/test'
+test('researcher can save, annotate and reopen a synthetic finding', async ({ page }) => {
+  await page.route('**/api/demo/query', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ response: { query: 'What do the available guidelines say about ACE inhibitors during pregnancy?', answer: 'SYNTHETIC NOTEBOOK RESULT. NOT MEDICAL ADVICE.', status: 'VERIFIED', execution_mode: 'MEDONTO', citations: [{ chunk_id: 'synthetic-chunk', document_id: 'synthetic-doc', title: 'Synthetic Document', section_title: 'Test section', page_number: 1, source_url: null }], ontology_constraints: [], retrieval: { result_count: 1, used_ontology_filter: true, retrieval_relaxed: false } }, execution_trace: [] }) }))
+  await page.goto('http://127.0.0.1:5173/')
+  await page.getByRole('button', { name: /Medication safety/i }).click()
+  await page.getByRole('button', { name: /Analyze evidence/i }).click()
+  await expect(page.getByText('SYNTHETIC NOTEBOOK RESULT. NOT MEDICAL ADVICE.')).toBeVisible()
+  await page.getByRole('button', { name: /Save to Notebook/i }).click()
+  await page.getByRole('button', { name: /Research Notebook/i }).first().click()
+  await expect(page.getByRole('heading', { name: 'Research Notebook' })).toBeVisible()
+  await page.getByLabel('Your research notes').fill('Follow up with original source.')
+  await page.reload()
+  await page.getByRole('button', { name: /Research Notebook/i }).first().click()
+  await expect(page.getByLabel('Your research notes')).toHaveValue('Follow up with original source.')
+})
