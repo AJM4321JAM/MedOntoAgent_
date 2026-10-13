@@ -64,8 +64,8 @@ test('workbench displays a synthetic backend response', async ({ page }) => {
 
   await page.getByRole('button', { name: /Decision Audit/i }).click()
 
-  await expect(page.getByText('1. initialize')).toBeVisible()
-  await expect(page.getByText('2. verified')).toBeVisible()
+  await expect(page.getByText('Initialize', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Verification completed', { exact: true }).first()).toBeVisible()
 
   expect(requestCount).toBe(1)
 })

@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import {
   Activity,
@@ -27,6 +26,84 @@ const exampleQuestions = [
   'What considerations apply to ACE inhibitors during pregnancy?',
   'What do the available guidelines say about labetalol?',
 ]
+
+const auditNodeLabels: Record<string, { title: string; detail: string }> = {
+  initialize: { title: 'Initialize', detail: 'Prepare workflow controls' },
+  map_concepts: { title: 'Concept mapping', detail: 'Identify relevant clinical concepts' },
+  build_constraints: { title: 'Ontology constraints', detail: 'Build ontology-informed retrieval constraints' },
+  retrieve: { title: 'Evidence retrieval', detail: 'Retrieve guideline evidence' },
+  generate: { title: 'Grounded generation', detail: 'Generate an evidence-grounded draft' },
+  validate: { title: 'Response validation', detail: 'Run the configured verification checks' },
+  retry: { title: 'Retry decision', detail: 'Retry according to workflow policy' },
+  verified: { title: 'Verification completed', detail: 'Application verification checks passed' },
+  abstain: { title: 'Abstained', detail: 'Workflow declined to produce a verified response' },
+  baseline_routed: { title: 'Baseline routing', detail: 'Route to conventional baseline RAG' },
+}
+
+function formatDuration(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return '—'
+  if (milliseconds < 1000) return `${milliseconds.toFixed(0)} ms`
+  return `${(milliseconds / 1000).toFixed(2)} s`
+}
+
+function DecisionTimeline({ result, compact = false }: { result: DemoQueryResult; compact?: boolean }) {
+  const events = result.execution_trace
+  const total = events.reduce(
+    (sum, event) => sum + Math.max(0, Number.isFinite(event.elapsed_since_previous_update_ms) ? event.elapsed_since_previous_update_ms : 0),
+    0,
+  )
+  const isBaseline = result.response.execution_mode !== 'MEDONTO'
+  const largest = Math.max(1, ...events.map((event) => event.elapsed_since_previous_update_ms))
+
+  return (
+    <div className={`decision-audit ${compact ? 'decision-audit-compact' : ''}`}>
+      <div className="audit-summary">
+        <div><span className="audit-summary-label">Graph updates</span><strong>{events.length}</strong></div>
+        <div><span className="audit-summary-label">Graph elapsed</span><strong>{formatDuration(total)}</strong></div>
+        <div><span className="audit-summary-label">Execution</span><strong>{result.response.execution_mode.replaceAll('_', ' ')}</strong></div>
+      </div>
+      {events.length === 0 ? (
+        <p className="audit-empty">No completed graph updates were returned for this execution.</p>
+      ) : (
+        <ol className="audit-timeline" aria-label="Actual execution timeline">
+          {events.map((event) => {
+            const meta = auditNodeLabels[event.node] ?? {
+              title: event.node.replaceAll('_', ' '),
+              detail: 'Completed LangGraph step',
+            }
+            const duration = event.elapsed_since_previous_update_ms
+            const width = Number.isFinite(duration) && duration > 0
+              ? Math.max(2, Math.min(100, (duration / largest) * 100))
+              : 0
+            const terminal = event.node === 'verified' || event.node === 'abstain'
+            return (
+              <li className="audit-timeline-item" key={`${event.sequence}-${event.node}`}>
+                <div className={`audit-timeline-marker ${terminal ? 'audit-timeline-marker-terminal' : ''}`} aria-hidden="true">
+                  {event.sequence}
+                </div>
+                <div className="audit-timeline-body">
+                  <div className="audit-timeline-top">
+                    <strong>{meta.title}</strong>
+                    <span className="audit-timeline-time">{formatDuration(duration)}</span>
+                  </div>
+                  {!compact && <p>{meta.detail}</p>}
+                  <div className="audit-duration-track" aria-hidden="true">
+                    <div className="audit-duration-bar" style={{ width: `${width}%` }} />
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+      <p className="audit-interpretation">
+        Times are intervals between completed streamed graph updates, not isolated node runtimes.
+        {isBaseline && ' Baseline execution time is not included in this graph trace.'}
+        {' '}Verification status describes implemented checks, not independent clinical correctness.
+      </p>
+    </div>
+  )
+}
 
 function App() {
   const [page, setPage] = useState<Page>('workbench')
@@ -260,17 +337,7 @@ function App() {
                       {detailTab === 'audit' ? (
                         <>
                           <h3>Actual LangGraph execution</h3>
-                          {result.execution_trace.map((event) => (
-                            <div className="audit-event" key={event.sequence}>
-                              <strong>{event.sequence}. {event.node}</strong>
-                              <span>{event.elapsed_since_previous_update_ms.toFixed(1)} ms</span>
-                            </div>
-                          ))}
-                          <p className="result-disclaimer">
-                            Timings are measured between streamed node updates,
-                            not isolated node execution durations.
-                            Baseline execution occurs outside this graph timeline.
-                          </p>
+                          <DecisionTimeline result={result} compact />
                         </>
                       ) : (
                         <>
@@ -329,6 +396,19 @@ function App() {
                   )}
                 </section>
               </div>
+
+              {result && !loading && !error && (
+                <section className="pipeline-card live-audit-card">
+                  <div className="pipeline-heading">
+                    <div>
+                      <h2>Live execution audit</h2>
+                      <p>Completed stages from this request, not a simulated workflow</p>
+                    </div>
+                    <span className="neutral-tag">{result.response.status}</span>
+                  </div>
+                  <DecisionTimeline result={result} />
+                </section>
+              )}
 
               <section className="pipeline-card">
                 <div className="pipeline-heading">
