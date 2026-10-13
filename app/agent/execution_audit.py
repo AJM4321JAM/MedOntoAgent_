@@ -30,6 +30,22 @@ class GraphAuditResult:
     events: tuple[ExecutionEvent, ...]
 
 
+class GraphAuditInterrupted(RuntimeError):
+    """A graph execution failed after zero or more completed nodes.
+
+    Only safe, allow-listed node metadata is retained.
+    The underlying exception is deliberately not included
+    in the public-facing message.
+    """
+
+    def __init__(
+        self,
+        events: tuple[ExecutionEvent, ...],
+    ) -> None:
+        super().__init__("Graph execution interrupted.")
+        self.events = events
+
+
 def execute_graph_with_audit(
     graph: Any,
     query: str,
@@ -46,10 +62,21 @@ def execute_graph_with_audit(
     final_state: dict[str, Any] | None = None
     last_update = perf_counter()
 
-    for item in graph.stream(
-        {"query": query},
-        stream_mode=["updates", "values"],
-    ):
+    iterator = iter(
+        graph.stream(
+            {"query": query},
+            stream_mode=["updates", "values"],
+        )
+    )
+
+    while True:
+        try:
+            item = next(iterator)
+        except StopIteration:
+            break
+        except Exception as exc:
+            raise GraphAuditInterrupted(tuple(events)) from exc
+
         if not isinstance(item, tuple) or len(item) != 2:
             raise RuntimeError("Unexpected graph stream envelope.")
 

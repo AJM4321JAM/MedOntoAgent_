@@ -83,3 +83,8 @@ def health_check() -> dict[str, str]:
         "status": "healthy",
         "environment": settings.app_env,
     }
+
+
+# Protected demonstration audit endpoint.
+from app.api.routes_demo import router as demo_router
+app.include_router(demo_router)
