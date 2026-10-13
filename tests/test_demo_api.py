@@ -175,3 +175,57 @@ def test_unexpected_failure_has_generic_response(client, monkeypatch):
     assert response.status_code == 500
     assert "private internal" not in response.text
     assert "MedOntoAgent could not complete" in response.text
+
+
+
+def test_baseline_routed_failure_returns_503(client, monkeypatch):
+    monkeypatch.setattr(
+        routes_demo,
+        "execute_medonto_with_audit",
+        lambda query: AuditedExecution(
+            execution=MedOntoExecution(
+                execution_mode="BASELINE_ROUTED",
+                baseline_response=None,
+                fallback_error="LLMServiceError",
+                error_category="provider_unavailable",
+            ),
+            events=(),
+        ),
+    )
+
+    response = client.post(
+        "/demo/query",
+        headers={"X-MedOnto-Admin-Key": "local-test-secret"},
+        json={"query": "Synthetic question"},
+    )
+
+    assert response.status_code == 503
+    assert "LLMServiceError" not in response.text
+    assert "provider_unavailable" not in response.text
+
+
+def test_baseline_fallback_failure_returns_503(client, monkeypatch):
+    monkeypatch.setattr(
+        routes_demo,
+        "execute_medonto_with_audit",
+        lambda query: AuditedExecution(
+            execution=MedOntoExecution(
+                execution_mode="BASELINE_FALLBACK",
+                baseline_response=None,
+                fallback_reason="RetrievalError",
+                fallback_error="LLMServiceError",
+                error_category="provider_unavailable",
+            ),
+            events=(),
+        ),
+    )
+
+    response = client.post(
+        "/demo/query",
+        headers={"X-MedOnto-Admin-Key": "local-test-secret"},
+        json={"query": "Synthetic question"},
+    )
+
+    assert response.status_code == 503
+    assert "RetrievalError" not in response.text
+    assert "LLMServiceError" not in response.text

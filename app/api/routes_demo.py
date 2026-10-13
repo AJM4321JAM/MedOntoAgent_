@@ -15,6 +15,11 @@ from app.security.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
+
+class DemoDependencyUnavailable(RuntimeError):
+    """A recognized dependency failure prevented a demo result."""
+
+
 router = APIRouter(
     prefix="/demo",
     tags=["demo"],
@@ -73,7 +78,15 @@ def query_demo(request: QueryRequest) -> DemoQueryResponse:
         else:
             baseline = execution.baseline_response
             if baseline is None:
-                raise ValueError("Baseline execution did not complete.")
+                logger.warning(
+                    "Demo dependency unavailable: "
+                    "stage=baseline mode=%s category=%s",
+                    execution.execution_mode,
+                    execution.error_category or "unclassified",
+                )
+                raise DemoDependencyUnavailable(
+                    "Baseline execution did not complete."
+                )
 
             response = query_routes._build_fallback_public_response(
                 query=request.query,
@@ -102,6 +115,17 @@ def query_demo(request: QueryRequest) -> DemoQueryResponse:
             retry_count=retries,
         )
         return result
+
+    except DemoDependencyUnavailable as exc:
+        query_routes.record_request(
+            status="ERROR",
+            latency_ms=(time.perf_counter() - start) * 1000,
+            retry_count=0,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="MedOntoAgent temporarily cannot complete the request.",
+        ) from exc
 
     except query_routes.EvaluationBudgetExhausted as exc:
         query_routes.record_request(
