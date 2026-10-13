@@ -4,7 +4,8 @@ import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+from app.api.citation_passages import extract_cited_passages
 
 from app.agent.audited_execution import execute_medonto_with_audit
 from app.api import routes_query as query_routes
@@ -41,6 +42,15 @@ class DemoQueryResponse(BaseModel):
 
     response: MedOntoQueryResponse
     execution_trace: list[PublicExecutionEvent]
+    cited_passages: list["PublicCitedPassage"] = Field(default_factory=list)
+
+
+class PublicCitedPassage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    chunk_id: str
+    document_id: str
+    text: str
+    truncated: bool
 
 
 @router.post("/query", response_model=DemoQueryResponse)
@@ -99,6 +109,9 @@ def query_demo(request: QueryRequest) -> DemoQueryResponse:
 
         result = DemoQueryResponse(
             response=response,
+            cited_passages=extract_cited_passages(
+                execution=execution, citations=response.citations, status=response.status
+            ),
             execution_trace=[
                 PublicExecutionEvent(
                     sequence=event.sequence,

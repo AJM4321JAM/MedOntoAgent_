@@ -1,0 +1,10 @@
+
+/* Research investigation utilities */
+.v6-evidence-reading { margin: 14px 0 8px; padding: 16px 18px; border: 1px solid var(--border, #465367); border-radius: 10px; }
+.v6-evidence-reading h3 { font-size: 15px; margin: 0 0 8px; }
+.v6-evidence-reading p { font-size: 14px; line-height: 1.6; margin: 0; }
+.v6-evidence-reading button, .v6-source-actions button { margin-top: 10px; padding: 8px 11px; border-radius: 8px; border: 1px solid #64748b; background: transparent; color: inherit; cursor: pointer; }
+.v6-source-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; }
+.v6-source-actions button { display: inline-flex; align-items:center; gap: 5px; margin: 0; }
+.v6-source-actions a { font-size: 13px; }
+.v6-source-feedback { font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px solid #64748b; }

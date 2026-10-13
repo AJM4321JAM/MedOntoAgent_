@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Activity, BookOpen, Layers3, Moon, ShieldCheck, Stethoscope, Sun, NotebookPen } from 'lucide-react'
 import { runClinicalQuery, type DemoQueryResult } from './api'
-import { KnowledgeLibrary, SystemOperations } from './WorkspacePages'
+import { TechnicalInspectionV8 } from './TechnicalInspectionV8'
+import { GuidelineShelf } from './GuidelineShelf'
 import { ResearchWorkspaceV3 } from './ResearchWorkspaceV3'
 import './App.css'
 import './Theme.css'
@@ -77,7 +78,7 @@ function App() {
         <span className="connection-status"><span className="status-dot"/>Local demo API</span>
       </div></header>
       <div className="content">
-        {page === 'workbench' ? <ResearchWorkspaceV3 onSave={saveCurrent} saveDisabled={!result || notebook.some(e => e.result === result)} notebookCount={notebook.length} onNotebook={() => setPage('notebook')} question={question} setQuestion={setQuestion} result={result} setResult={setResult} loading={loading} error={error} setError={setError} onRun={handleRun} history={researchHistory} onClearHistory={() => setResearchHistory([])}/> : page === 'library' ? <div className="v4-page"><div className="v4-pagehead"><div><span className="v4-eyebrow">SOURCE DISCOVERY</span><h1>Guideline Library</h1><p>Browse the registered clinical evidence and inspect document provenance. Development fixtures are not clinical guidelines.</p></div></div><KnowledgeLibrary/></div> : page === 'notebook' ? <ResearchNotebook entries={notebook} setEntries={updateNotebook} openResearch={(item) => { setResult(item); setQuestion(item.response.query); setError(null); setPage('workbench') }}/>: <div className="v4-page"><div className="v4-pagehead"><div><span className="v4-eyebrow">ADVANCED / EXAMINER</span><h1>Technical Inspection</h1><p>Read-only system diagnostics. Execution-specific ontology and LangGraph evidence is available from each research result.</p></div></div><SystemOperations/></div>}
+        {page === 'workbench' ? <ResearchWorkspaceV3 onSave={saveCurrent} saveDisabled={!result || notebook.some(e => e.result === result)} notebookCount={notebook.length} onNotebook={() => setPage('notebook')} question={question} setQuestion={setQuestion} result={result} setResult={setResult} loading={loading} error={error} setError={setError} onRun={handleRun} history={researchHistory} onClearHistory={() => setResearchHistory([])}/> : page === 'library' ? <div className="v4-page"><div className="v4-pagehead"><div><span className="v4-eyebrow">SOURCE DISCOVERY</span><h1>Guideline Library</h1><p>Browse the registered clinical evidence and inspect document provenance. Development fixtures are not clinical guidelines.</p></div></div><GuidelineShelf onAsk={(prompt) => { setQuestion(prompt); setResult(null); setError(null); setPage('workbench') }}/></div> : page === 'notebook' ? <ResearchNotebook entries={notebook} setEntries={updateNotebook} openResearch={(item) => { setResult(item); setQuestion(item.response.query); setError(null); setPage('workbench') }}/>: <div><TechnicalInspectionV8 lastResult={result} onResearch={() => setPage('workbench')} onLibrary={() => setPage('library')}/></div>}
         {storageError && <div role="alert" className="v4-notice">Browser storage is unavailable or full. This Notebook change may not survive refresh.</div>}<footer className="footer"><ShieldCheck size={15}/>For research and demonstration only. Not validated for independent clinical use.</footer>
       </div>
     </main>
