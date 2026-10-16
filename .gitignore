@@ -46,3 +46,5 @@ infrastructure/aws/*.rendered.json
 evals/results/*.txt
 evals/results/*.md
 evals/results/*.csv
+
+.env.web
